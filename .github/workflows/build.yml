@@ -49,7 +49,7 @@ jobs:
           - os: ubuntu-latest
             TARGET: ubuntu
             CMD_BUILD: pyinstaller -F -n autodarts-wled -i resources/autodarts-wled.svg autodarts-wled.py
-            OUT_FILE_NAME: autodarts-wled.bin
+            OUT_FILE_NAME: autodarts-wled
             ASSET_MIME: application/octet-stream
           - os: windows-latest
             TARGET: windows
