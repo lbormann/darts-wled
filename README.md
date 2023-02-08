@@ -93,20 +93,20 @@ Reboot your system.
 
 ### Arguments
 
--WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://wled-dart.local"
--HSO / --high_score_on [OPTIONAL] [Default: None] [Possible values: 1 .. 180] ex: "101"
--HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 1 .. 170] ex: "51"
--G / --game_won_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "1" "2" "3"
--M / --match_won_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "4" "5" "6"
--B / --busted_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "7" "8" "9"
--HS / --high_score_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "10" "11" "12"
--HF / --high_finish_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "13" "14" "15"
--S0 / --score_0 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "100" "101" "102"
--S60 / --score_60 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "103" "104" "105"
--S100 / --score_100 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "103" "104" "105"
--S140 / --score_140 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "103" "104" "105"
--S180 / --score_180 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "106" "107" "108"
--S{X} / --score_X [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "106" "107" "108"
+- -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://wled-dart.local"
+- -HSO / --high_score_on [OPTIONAL] [Default: None] [Possible values: 1 .. 180] ex: "101"
+- -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 1 .. 170] ex: "51"
+- -G / --game_won_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "1" "2" "3"
+- -M / --match_won_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "4" "5" "6"
+- -B / --busted_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "7" "8" "9"
+- -HS / --high_score_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "10" "11" "12"
+- -HF / --high_finish_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "13" "14" "15"
+- -S0 / --score_0 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "100" "101" "102"
+- -S60 / --score_60 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "103" "104" "105"
+- -S100 / --score_100 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "103" "104" "105"
+- -S140 / --score_140 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "103" "104" "105"
+- -S180 / --score_180 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "106" "107" "108"
+- -S{X} / --score_X [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117] ex: "106" "107" "108"
 
 X = every value between 0 and 180!
 
