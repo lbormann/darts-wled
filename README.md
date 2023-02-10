@@ -26,10 +26,10 @@ o = not (yet) supported
 ## Showcase
 
 ![sc1](https://github.com/lbormann/autodarts-wled/blob/main/showcase/1.jpg?raw=true)
-![sc2](https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true)
+<!-- ![sc2](https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true)
 ![sc3](https://github.com/lbormann/autodarts-wled/blob/main/showcase/3.jpg?raw=true)
 ![sc4](https://github.com/lbormann/autodarts-wled/blob/main/showcase/4.jpg?raw=true)
-![sc5](https://github.com/lbormann/autodarts-wled/blob/main/showcase/5.jpg?raw=true)
+![sc5](https://github.com/lbormann/autodarts-wled/blob/main/showcase/5.jpg?raw=true) -->
 
 
 ## Best working and looking LED-Location
@@ -50,7 +50,7 @@ Notice the EffectID in the first column: this ID is your friend if you want to m
 Every autodart-event can be mapped to multiple WLED-Effects. An effect will be randomly determined at runtime.
 In my experience the primary factor causing false positive autodarts-recognition is high brightness of leds. If you limit your leds to a certain mA, you will not have any problems.
 
-My favorite effects are (Please feel free to shout out your favorites on Discord ;):
+My favorite effects (WIP): (Please feel free to shout out your favorites on Discord ;)
 
 | Autodart-Event | WLED-Effect-ID |
 | ------------- | ------------- |
@@ -69,7 +69,6 @@ My favorite effects are (Please feel free to shout out your favorites on Discord
 | Blink | red | D | 230 | D | D |
 | Blink Rainbow | D | D | 230 | D | D |
 | Bpm | red | D | 230 | D | D |
-
 | Rainbow | D | D | D | D | D |
 
 
