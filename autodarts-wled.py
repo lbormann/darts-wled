@@ -83,11 +83,10 @@ def process_match_x01(msg):
 
         if HIGH_SCORE_ON != None and int(val) >= HIGH_SCORE_ON and HIGH_SCORE_EFFECT_IDS != None:
             effect_id = get_effect(HIGH_SCORE_EFFECT_IDS)
-            if effect_id != -1:
-                highscore = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id }}
-                # highscore = {"on": True, "seg": {"fx": effect_id }}
-                broadcast(highscore)
-                printv('Highscore: ' + val + ' - Playing effect ' + str(effect_id))
+            highscore = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id }}
+            # highscore = {"on": True, "seg": {"fx": effect_id }}
+            broadcast(highscore)
+            printv('Highscore: ' + val + ' - Playing effect ' + str(effect_id))
 
         elif args["score_" + val] != None:
             effect_id = get_effect(args["score_" + val])

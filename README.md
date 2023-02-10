@@ -38,17 +38,27 @@ To find the best possible light-impression without causing problem to dart-recog
 1. As main lighting (in a plasma lighting ring): It`s way too dark - ugly as my softring is black (It should be definitely better with a white one).
 2. Around the plasma lighting ring (outside): Not really a light-effect at all, as light has nothing to shine at.
 3. Around my softring: Works best and looks nice! But you need a bright background/wall.
-Problems with white soft ring - leds as main leds installed - looks good, but detection is confused, it does not recognize pulling and after manually enter the turn the detection stops completly and you need to restart your board.
-Moreover as a general impression: If the leds are too far away from wall the effect is not good. More far = more bad. just ez like that.
+
+I`ve tested 1.) with a white soft ring. It looks OK, but the recognition algorithmn can NOT handle this: When a led-effect is played it does not recognize pulling.. after pressing next to end the turn, the recognition stops completely and you need to restart your board.
+
+Moreover as a general impression: If the leds are too far away from wall the effect is not good. More far away = more bad - just ez like that.
+
+Here is my currrent Hardware-Setup (You can google prices yourself):
+* Controller: 1x AZDelivery ESP32 D1 Mini
+* Led-stripe: 1x BTF-Lighting SK6812 RGBNW 60leds/m - ~ 4.4m used
+* Power adapter: 1x Mean Well LPV-100-5 60W 5V DC
+* Cosmetic: 1x fowong 2m Selbstklebend Dichtungsband 12mm(B) x 12mm(D) x 4m(L) Schaumstoffband (to prevent visible leds)
+* Connector: 4x Wago 221-612 Verbindungsklemme 2 Leiter mit Betätigungshebel 0,5-6 qmm (to easily connect cables)
+* Connector: 2x 3 Pin LED Anschluss 10 mm Lötfreier LED Licht Anschluss (to easily connect led-stripe segments)
 
 
 ## WLED-Effects
 
 In WLED you can choose between a pre-installed list of effects. You can find a list of possible effects here:
 https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
-Notice the EffectID in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
+Notice the 'EffectID' in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
 Every autodart-event can be mapped to multiple WLED-Effects. An effect will be randomly determined at runtime.
-In my experience the primary factor causing false positive autodarts-recognition is high brightness of leds. If you limit your leds to a certain mA, you will not have any problems.
+In my experience the primary factor causing false positive autodarts-recognition is high brightness of leds. If you limit your leds to a certain power draw, you will not have any problems.
 
 My favorite effects (WIP): (Please feel free to shout out your favorites on Discord ;)
 
@@ -167,7 +177,6 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - initial check is wled reachable download effect-names. (maybe turn on wled-installation(s) for 10 Seconds)
 - support presets
 - add quality photos of a setup example
-- add high-finish logic
 - let user choose between effect-index and effect-name in arguments
 
 
@@ -176,6 +185,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - support events with multiple effects that chosen randomly
 - send events to wled-instance(s)
 - Random Effect if user enters 'x' as argument value for effect-id
+- add high-finish logic
 
 ## LAST WORDS
 
