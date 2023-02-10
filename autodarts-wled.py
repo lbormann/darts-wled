@@ -14,12 +14,16 @@ from flask import Flask, request
 app = Flask(__name__)
 
 
+WLED_STATE_PATH = '/json/state'
+WLED_EFFECT_ID_MIN = 0
+WLED_EFFECT_ID_MAX = 118
+WLED_DEFAULT_BRIGHTNESS = 255
+
 BOGEY_NUMBERS = [169,168,166,165,163,162,159]
 SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
-# 'Cricket'
-SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout']
-WLED_STATE_PATH = '/json/state'
-VERSION = '1.0.0'
+SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
+
+VERSION = '1.1.0'
 DEBUG = False
 
 
@@ -57,7 +61,13 @@ def broadcast_intern(endpoint, data):
     # except Exception as e:
         # log_and_print('FAILED INTERN BROADCAST: ', e)
         return
-        
+
+def get_effect(effect_list):
+    if effect_list == ["x"] or effect_list == ["X"]:
+        return random.choice(WLED_EFFECT_ID_LIST)
+    else:
+        return random.choice(effect_list)
+
         
 def process_match_x01(msg):
     if msg['event'] == 'darts-thrown':
@@ -71,47 +81,62 @@ def process_match_x01(msg):
 
         val = msg['game']['dartValue']
 
-        if HIGH_SCORE_ON != None and int(val) >= HIGH_SCORE_ON:
-            effect_id = random.choice(HIGH_SCORE_EFFECT_IDS)
-            highscore = {"bri": 255, "seg": {"fx": effect_id }}
-            broadcast(highscore)
-            printv('Highscore: ' + val + ' - Playing effect ' + str(effect_id))
-        # ("score_" + val) in args
-        elif args["score_" + val] != None and len(args["score_" + val]) >= 1:
-            effect_id = random.choice(args["score_" + val])
-            score = {"bri": 255, "seg": {"fx": effect_id}}
+        if HIGH_SCORE_ON != None and int(val) >= HIGH_SCORE_ON and HIGH_SCORE_EFFECT_IDS != None:
+            effect_id = get_effect(HIGH_SCORE_EFFECT_IDS)
+            if effect_id != -1:
+                highscore = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id }}
+                # highscore = {"on": True, "seg": {"fx": effect_id }}
+                broadcast(highscore)
+                printv('Highscore: ' + val + ' - Playing effect ' + str(effect_id))
+
+        elif args["score_" + val] != None:
+            effect_id = get_effect(args["score_" + val])
+            score = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
             broadcast(score)
             printv('Score: ' + val + ' Playing effect ' + str(effect_id))
 
         printv('darts-thrown')
 
     elif msg['event'] == 'darts-pulled':
-        off = {"bri": 0}
+        off = {"on": False}
+        # off = {"bri": 0}
+        # off = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": 0}}
         broadcast(off)
         printv('Darts-pulled')
 
-    elif msg['event'] == 'busted':
-        effect_id = random.choice(BUSTED_EFFECT_IDS)
-        busted = {"bri": 255, "seg": {"fx": effect_id, "sx": 240, "ix": 240}}
+    elif msg['event'] == 'busted' and BUSTED_EFFECT_IDS != None:
+        effect_id = get_effect(BUSTED_EFFECT_IDS)
+        busted = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id, "sx": 240, "ix": 240}}
         broadcast(busted)
         printv('Busted - Playing effect ' + str(effect_id))
 
-    elif msg['event'] == 'game-won':
-        # TODO: highfinish
-        effect_id = random.choice(GAME_WON_EFFECT_IDS)
-        gameWon = {"bri": 255, "seg": {"fx": effect_id}}
-        broadcast(gameWon)
-        printv('Game-won - Playing effect ' + str(effect_id))
+    elif msg['event'] == 'game-won' and GAME_WON_EFFECT_IDS != None:
+        if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECT_IDS != None:
+            effect_id = get_effect(HIGH_FINISH_EFFECT_IDS)
+            highfinish = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
+            broadcast(highfinish)
+            printv('Game-won - Highfinish - Playing effect ' + str(effect_id))
+        else:
+            effect_id = get_effect(GAME_WON_EFFECT_IDS)
+            gameWon = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
+            broadcast(gameWon)
+            printv('Game-won - Playing effect ' + str(effect_id))
 
-    elif msg['event'] == 'match-won':
-        # TODO: highfinish
-        effect_id = random.choice(MATCH_WON_EFFECT_IDS)
-        matchWon = {"bri": 255, "seg": {"fx": effect_id}}
-        broadcast(matchWon)
-        printv('Match-won - Playing effect ' + str(effect_id))
+    elif msg['event'] == 'match-won' and MATCH_WON_EFFECT_IDS != None:
+        if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECT_IDS != None:
+            effect_id = get_effect(HIGH_FINISH_EFFECT_IDS)
+            highfinish = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
+            broadcast(highfinish)
+            printv('Match-won - Highfinish - Playing effect ' + str(effect_id))
+        else:
+            effect_id = get_effect(MATCH_WON_EFFECT_IDS)
+            matchWon = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
+            broadcast(matchWon)
+            printv('Match-won - Playing effect ' + str(effect_id))
 
     elif msg['event'] == 'game-started':
         gameStarted = {"bri": 0}
+        # gameStarted = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": 0}}
         broadcast(gameStarted)
         printv('Game-started')
 
@@ -147,19 +172,31 @@ def dartsThrown():
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
 
+    ap.add_argument("-I", "--host_ip", default="0.0.0.0", required=False, help="ip to be reachable by data feeder")
+    ap.add_argument("-P", "--host_port", default="8081", required=False, help="port to be reachable by data feeder")
     ap.add_argument("-WEPS", "--wled_endpoints", required=True, nargs='+', help="Url(s) to wled instance(s)")
     ap.add_argument("-HSO", "--high_score_on", type=int, choices=range(1, 180), default=None, required=False, help="TODO")
     ap.add_argument("-HFO", "--high_finish_on", type=int, choices=range(1, 170), default=None, required=False, help="TODO")
-    ap.add_argument("-G", "--game_won_effect_ids", type=int, choices=range(1, 117), default=None, required=False, nargs='*', help="WLED effect id(s) when game won occurs")
-    ap.add_argument("-M", "--match_won_effect_ids", type=int, choices=range(1, 117), default=None, required=False, nargs='*', help="WLED effect id(s) when match won occurs")
-    ap.add_argument("-B", "--busted_effect_ids", type=int, choices=range(1, 117), default=None, required=False, nargs='*', help="WLED effect id(s) when bust occurs")
-    ap.add_argument("-HS", "--high_score_effect_ids", type=int, choices=range(1, 117), default=None, required=False, nargs='*', help="WLED effect id(s) when high-score occurs")
-    ap.add_argument("-HF", "--high_finish_effect_ids", type=int, choices=range(1, 117), default=None, required=False, nargs='*', help="WLED effect id(s) when high-finish occurs")
+    ap.add_argument("-HS", "--high_score_effect_ids", default=None, required=False, nargs='*', help="WLED effect id(s) when high-score occurs")
+    ap.add_argument("-HF", "--high_finish_effect_ids", default=None, required=False, nargs='*', help="WLED effect id(s) when high-finish occurs")
+    ap.add_argument("-G", "--game_won_effect_ids", default=None, required=False, nargs='*', help="WLED effect id(s) when game won occurs")
+    ap.add_argument("-M", "--match_won_effect_ids", default=None, required=False, nargs='*', help="WLED effect id(s) when match won occurs")
+    ap.add_argument("-B", "--busted_effect_ids", default=None, required=False, nargs='*', help="WLED effect id(s) when bust occurs")
+
+    
     for v in range(0, 181):
         val = str(v)
-        ap.add_argument("-S" + val, "--score_" + val, type=int, choices=range(1, 117), default=None, required=False, nargs='*', help="WLED effect id for score " + val)
+        ap.add_argument("-S" + val, "--score_" + val, default=None, required=False, nargs='*', help="WLED effect id for score " + val)
 
     args = vars(ap.parse_args())
+
+    HOST_PORT = args['host_port']
+    if(HOST_PORT == None):
+        HOST_PORT = '8081'
+
+    HOST_IP = args['host_ip']
+    if(HOST_IP == None):
+        HOST_IP = '0.0.0.0'   
 
     WLED_ENDPOINTS = args['wled_endpoints']
     if WLED_ENDPOINTS is not None:
@@ -167,6 +204,8 @@ if __name__ == "__main__":
         for e in WLED_ENDPOINTS:
             parsedList.append(parseUrl(e + WLED_STATE_PATH))
         WLED_ENDPOINTS = parsedList
+    else:
+        WLED_ENDPOINTS = list()
 
     HIGH_SCORE_ON = args['high_score_on']
     HIGH_FINISH_ON = args['high_finish_on']
@@ -175,7 +214,7 @@ if __name__ == "__main__":
     BUSTED_EFFECT_IDS = args['busted_effect_ids']
     HIGH_SCORE_EFFECT_IDS = args['high_score_effect_ids']
     HIGH_FINISH_EFFECT_IDS = args['high_finish_effect_ids']
-
+    WLED_EFFECT_ID_LIST = list(range(WLED_EFFECT_ID_MIN, WLED_EFFECT_ID_MAX)) 
     
     printv('Started with following arguments:')
     printv(json.dumps(args, indent=4))
@@ -193,7 +232,7 @@ if __name__ == "__main__":
     print('\r\n')
 
     # https://stackoverflow.com/questions/11150343/slow-requests-on-local-flask-server
-    app.run(host='0.0.0.0', port='8081', threaded=True)
+    app.run(host=HOST_IP, port=HOST_PORT, threaded=True)
 
 
     
