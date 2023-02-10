@@ -58,17 +58,17 @@ In WLED you can choose between a pre-installed list of effects. You can find a l
 https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 Notice the 'EffectID' in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
 Every autodart-event can be mapped to multiple WLED-Effects. An effect will be randomly determined at runtime.
-In my experience the primary factor causing false positive autodarts-recognition is high brightness of leds. If you limit your leds to a certain power draw, you will not have any problems.
+In my experience the primary factor causing false-positive recognitions in autodarts is a configured led-brightness. You should limit your leds to a certain power draw.
 
 My favorite effects (WIP): (Please feel free to shout out your favorites on Discord ;)
 
 | Autodart-Event | WLED-Effect-ID |
 | ------------- | ------------- |
 | Game-Won (-G) | 4 |
-| Match-Won (-M) | 4, 87 (all max) |
-| Busted (-B) | 0 (red) |
-| Score-140 (-S140) | 81 (all max) |
-| Score-180 (-S180) | 78 (all max), 9 (all max) |
+| Match-Won (-M) | 4, 87 |
+| Busted (-B) | 0 |
+| Score-140 (-S140) | 81 |
+| Score-180 (-S180) | 78, 9 |
 
 
 | WLED-Effect-Name | FX | BG | Speed | Width | Duty Cycle |
@@ -146,22 +146,28 @@ Reboot your system.
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://192.168.0.200"
 - -HSO / --high_score_on [OPTIONAL] [Default: None] [Possible values: 1 .. 180] ex: "101"
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 1 .. 170] ex: "51"
-- -HS / --high_score_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "10" "11" "12"
-- -HF / --high_finish_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "13" "14" "15"
-- -G / --game_won_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
-- -M / --match_won_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "4" "5" "6"
-- -B / --busted_effect_ids [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "7" "8" "9"
-- -S0 / --score_0 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "100" "101" "102"
-- -S60 / --score_60 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "103" "104" "105"
-- -S100 / --score_100 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "103" "104" "105"
-- -S140 / --score_140 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "103" "104" "105"
-- -S180 / --score_180 [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "106" "107" "108"
-- -S{0-180} / --score_X [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
+- -HS / --high_score_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 0 .. 117 | x] ex: "10" "11" "12"
+- -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "13" "14" "15"
+- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
+- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "4" "5" "6"
+- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "7" "8" "9"
+- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "100" "101" "102"
+- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "106" "107" "108"
+- -S{0-180} / --score_X_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
 
 x = Random effect everytime
 
+For entering colors, use the following link and validate that the color-name you want is available in the list:
+https://www.webucator.com/article/python-color-constants-module/
 
-## EXTENSIONS (COMING SOON WIP)
+For entering effects, use an wled-effect-name or the corresponding number to this effect:
+https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
+
+If you have problems do not hesitate to have a look at "win-exec.bat" file!
+
+
+
+## HELPERS (COMING SOON WIP)
 
 If you think it is terrible to configure/start/handling this application then go for autodarts-desktop https://github.com/Semtexmagix/autodarts-desktop
 
@@ -174,10 +180,8 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 ## TODOs
 - support customizung effect-parameters (brightness, bg, speed, width etc.)
 - try to fix change-too-slow problem (WLED)
-- initial check is wled reachable download effect-names. (maybe turn on wled-installation(s) for 10 Seconds)
 - support presets
 - add quality photos of a setup example
-- let user choose between effect-index and effect-name in arguments
 
 
 ### Done
@@ -186,6 +190,9 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - send events to wled-instance(s)
 - Random Effect if user enters 'x' as argument value for effect-id
 - add high-finish logic
+- initial check is wled reachable download effect-names. (maybe turn on wled-installation(s) for 10 Seconds)
+- let user choose between effect-index and effect-name in arguments
+
 
 ## LAST WORDS
 
