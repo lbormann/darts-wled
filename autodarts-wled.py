@@ -10,8 +10,10 @@ import threading
 import json
 import logging
 logger=logging.getLogger()
+from color_constants import colors
 from flask import Flask, request
 app = Flask(__name__)
+
 
 
 WLED_STATE_PATH = '/json/state'
@@ -19,11 +21,12 @@ WLED_EFFECT_ID_MIN = 0
 WLED_EFFECT_ID_MAX = 118
 WLED_DEFAULT_BRIGHTNESS = 255
 
+EFFECT_PARAMETER_SEPARATOR = " "
 BOGEY_NUMBERS = [169,168,166,165,163,162,159]
 SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
 
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 DEBUG = False
 
 
@@ -62,11 +65,63 @@ def broadcast_intern(endpoint, data):
         # log_and_print('FAILED INTERN BROADCAST: ', e)
         return
 
-def get_effect(effect_list):
+def get_random_effect(effect_list):
     if effect_list == ["x"] or effect_list == ["X"]:
         return random.choice(WLED_EFFECT_ID_LIST)
     else:
         return random.choice(effect_list)
+
+
+def parse_effects_argument(effects_argument):
+    # effects_argument = 
+    #     "rainbow red green yellow" 
+    #     "solid red green yellow" 
+    #     "sprinkle red green yellow"
+
+    if effects_argument == None:
+        return None
+
+    parsed_list = list()
+
+    # for effect in GAME_WON_EFFECT_IDS:
+    # parsed_effect_argument = parse_effect_argument(effect)
+    # parsed_list.append(parsed_effect_argument) 
+    # GAME_WON_EFFECT_IDS = parsed_list
+
+    # IDEA is to transform custom language to json-segment (WLED conform) - print for dev-time.
+    for effect in effects_argument:
+
+        try:
+            # separiere nach separator und ersetze Namen (Effekt-Name & Farbe) durch Zahlen ;)
+            params = effect.split()
+
+            # für jeden Effekt der Liste, 
+            # for p in params:
+            effect_id = params[0]
+            if effect_id.isdigit() == False:
+                # TODO
+                effect_id = effects[effect_id]
+                
+            
+            if(len(params) == 2):
+                effect_color_primary = params[1]
+                if effect_color_primary.isdigit() == False:
+                    effect_color_primary = colors[effect_color_primary]
+
+            if(len(params) == 3):
+                effect_color_secondary = params[2]
+                if effect_color_secondary.isdigit() == False:
+                    effect_color_secondary = colors[effect_color_secondary]
+
+            if(len(params) == 4):
+                effect_color_tertiary = params[3]
+                if effect_color_tertiary.isdigit() == False:
+                    effect_color_tertiary = colors[effect_color_tertiary]
+
+        except Exception as e:
+            log_and_print("Failed to translate names to numbers: ", e)
+
+        return parsed_list   
 
         
 def process_match_x01(msg):
@@ -82,14 +137,14 @@ def process_match_x01(msg):
         val = msg['game']['dartValue']
 
         if HIGH_SCORE_ON != None and int(val) >= HIGH_SCORE_ON and HIGH_SCORE_EFFECT_IDS != None:
-            effect_id = get_effect(HIGH_SCORE_EFFECT_IDS)
+            effect_id = get_random_effect(HIGH_SCORE_EFFECT_IDS)
             highscore = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id }}
             # highscore = {"on": True, "seg": {"fx": effect_id }}
             broadcast(highscore)
             printv('Highscore: ' + val + ' - Playing effect ' + str(effect_id))
 
         elif args["score_" + val] != None:
-            effect_id = get_effect(args["score_" + val])
+            effect_id = get_random_effect(args["score_" + val])
             score = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
             broadcast(score)
             printv('Score: ' + val + ' Playing effect ' + str(effect_id))
@@ -104,31 +159,31 @@ def process_match_x01(msg):
         printv('Darts-pulled')
 
     elif msg['event'] == 'busted' and BUSTED_EFFECT_IDS != None:
-        effect_id = get_effect(BUSTED_EFFECT_IDS)
+        effect_id = get_random_effect(BUSTED_EFFECT_IDS)
         busted = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id, "sx": 240, "ix": 240}}
         broadcast(busted)
         printv('Busted - Playing effect ' + str(effect_id))
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECT_IDS != None:
         if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECT_IDS != None:
-            effect_id = get_effect(HIGH_FINISH_EFFECT_IDS)
+            effect_id = get_random_effect(HIGH_FINISH_EFFECT_IDS)
             highfinish = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
             broadcast(highfinish)
             printv('Game-won - Highfinish - Playing effect ' + str(effect_id))
         else:
-            effect_id = get_effect(GAME_WON_EFFECT_IDS)
+            effect_id = get_random_effect(GAME_WON_EFFECT_IDS)
             gameWon = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
             broadcast(gameWon)
             printv('Game-won - Playing effect ' + str(effect_id))
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECT_IDS != None:
         if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECT_IDS != None:
-            effect_id = get_effect(HIGH_FINISH_EFFECT_IDS)
+            effect_id = get_random_effect(HIGH_FINISH_EFFECT_IDS)
             highfinish = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
             broadcast(highfinish)
             printv('Match-won - Highfinish - Playing effect ' + str(effect_id))
         else:
-            effect_id = get_effect(MATCH_WON_EFFECT_IDS)
+            effect_id = get_random_effect(MATCH_WON_EFFECT_IDS)
             matchWon = {"bri": WLED_DEFAULT_BRIGHTNESS, "seg": {"fx": effect_id}}
             broadcast(matchWon)
             printv('Match-won - Playing effect ' + str(effect_id))
@@ -208,11 +263,19 @@ if __name__ == "__main__":
 
     HIGH_SCORE_ON = args['high_score_on']
     HIGH_FINISH_ON = args['high_finish_on']
-    GAME_WON_EFFECT_IDS = args['game_won_effect_ids']
+    
+
+
+    GAME_WON_EFFECT_IDS = parse_effect_argument(args['game_won_effect_ids'])
     MATCH_WON_EFFECT_IDS = args['match_won_effect_ids']
     BUSTED_EFFECT_IDS = args['busted_effect_ids']
     HIGH_SCORE_EFFECT_IDS = args['high_score_effect_ids']
     HIGH_FINISH_EFFECT_IDS = args['high_finish_effect_ids']
+
+ 
+
+
+
     WLED_EFFECT_ID_LIST = list(range(WLED_EFFECT_ID_MIN, WLED_EFFECT_ID_MAX)) 
     
     printv('Started with following arguments:')

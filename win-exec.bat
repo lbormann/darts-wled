@@ -3,9 +3,9 @@ python "autodarts-wled.py" ^
 -I "0.0.0.0" ^
 -P "8081" ^
 -WEPS "your-wled-url" ^
--HSO "101" ^
+-HSO "3" ^
 -HFO "51" ^
--HS "x" ^
+-HS "4 yellow1 blue2 green1" ^
 -HF "x" ^
 -G "4" "87" "26" "29" "93" "42" "64" ^
 -M "4" "87" "26" "29" "93" "42" "64" ^
