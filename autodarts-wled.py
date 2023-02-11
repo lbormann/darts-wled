@@ -25,7 +25,7 @@ BOGEY_NUMBERS = [169,168,166,165,163,162,159]
 SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
 
-VERSION = '1.2.0'
+VERSION = '1.2.1'
 DEBUG = False
 
 
@@ -66,13 +66,13 @@ def broadcast_intern(endpoint, data):
 
 def get_random_effect(effect_list):
     if effect_list == ["x"] or effect_list == ["X"]:
-        return {"fx": random.choice(WLED_EFFECT_ID_LIST) } 
+        return {"fx": int(random.choice(WLED_EFFECT_ID_LIST)) } 
     else:
         return random.choice(effect_list)
 
 
 def parse_effects_argument(effects_argument):
-    if effects_argument == None or effects_argument == ["x"] or effects_argument == ["x"]:
+    if effects_argument == None or effects_argument == ["x"] or effects_argument == ["X"]:
         return effects_argument
 
     # effects_argument = 
@@ -150,16 +150,19 @@ def process_match_x01(msg):
     if msg['event'] == 'darts-thrown':
 
         # EXAMPLE:
+        # "event": "darts-thrown"
         # "player": currentPlayerName,
         # "game": {
         #     "mode": "X01",
-        #     "pointsLeft": str(remainingPlayerScore),
+        #     "pointsLeft": "100",
         #     "dartNumber": "3",
         #     "dartValue": points,        
         # }
 
         val = msg['game']['dartValue']
 
+
+        # TODO: was ist höher, highscore (min) oder score
         if HIGH_SCORE_ON != None and int(val) >= HIGH_SCORE_ON and HIGH_SCORE_EFFECTS != None:
             seg = get_random_effect(HIGH_SCORE_EFFECTS)
             highscore = {"on": True, "bri": WLED_DEFAULT_BRIGHTNESS, "seg": seg}
