@@ -24,7 +24,7 @@ BOGEY_NUMBERS = [169,168,166,165,163,162,159]
 SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
 
-VERSION = '1.2.2'
+VERSION = '1.2.3'
 DEBUG = False
 
 
@@ -166,14 +166,15 @@ def process_match_x01(msg):
         else:
             area_found = False
             for SAE in SCORE_AREA_EFFECTS:
-                ((area_from, area_to), parsed_effects) = SCORE_AREA_EFFECTS[SAE]
-                ival = int(val)
-                if ival >= area_from and ival <= area_to:
-                    seg = get_random_effect(parsed_effects)
-                    broadcast({"on": True, "seg": seg})
-                    printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
-                    area_found = True
-                    break
+                if SCORE_AREA_EFFECTS[SAE] != None:
+                    ((area_from, area_to), parsed_effects) = SCORE_AREA_EFFECTS[SAE]
+                    ival = int(val)
+                    if ival >= area_from and ival <= area_to:
+                        seg = get_random_effect(parsed_effects)
+                        broadcast({"on": True, "seg": seg})
+                        printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+                        area_found = True
+                        break
             if area_found == False:
                 printv('Darts-thrown: ' + val + ' - NO effect configured!')
 

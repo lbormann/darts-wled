@@ -147,7 +147,7 @@ Reboot your system.
 - -P / --host_port [OPTIONAL] [Default: "8081"] ex: "9090"
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://192.168.0.200"
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] ex: "150"
-- -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 1 .. 170] ex: "51"
+- -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] ex: "51"
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "13" "14" "15"
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "4" "5" "6"
