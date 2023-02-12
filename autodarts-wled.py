@@ -26,7 +26,7 @@ SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
 
 VERSION = '1.2.4'
-DEBUG = True
+DEBUG = False
 
 
 def printv(msg, only_debug = False):
@@ -163,8 +163,8 @@ def process_match_x01(msg):
         if SCORE_EFFECTS[val] != None:
             seg = get_random_effect(SCORE_EFFECTS[val])
             broadcast({"on": True, "seg": seg})
-            printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
             printv(seg, True)
+            printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])]) 
         else:
             area_found = False
             for SAE in SCORE_AREA_EFFECTS:
@@ -174,6 +174,7 @@ def process_match_x01(msg):
                     if ival >= area_from and ival <= area_to:
                         seg = get_random_effect(parsed_effects)
                         broadcast({"on": True, "seg": seg})
+                        printv(seg, True)
                         printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
                         area_found = True
                         break
@@ -185,37 +186,44 @@ def process_match_x01(msg):
         # broadcast({"on": False})
         # "on": False, 
         broadcast({"seg": seg})
+        printv(seg, True)
         printv('Darts-pulled')
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS != None:
         seg = get_random_effect(BUSTED_EFFECTS)
         broadcast({"on": True, "seg": seg})
+        printv(seg, True)
         printv('Busted - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS != None:
         if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
             seg = get_random_effect(HIGH_FINISH_EFFECTS)
             broadcast({"on": True, "seg": seg})
+            printv(seg, True)
             printv('Game-won - Highfinish - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
         else:
             seg = get_random_effect(GAME_WON_EFFECTS)
             broadcast({"on": True, "seg": seg})
+            printv(seg, True)
             printv('Game-won - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS != None:
         if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
             seg = get_random_effect(HIGH_FINISH_EFFECTS)
             broadcast({"on": True, "seg": seg})
+            printv(seg, True)
             printv('Match-won - Highfinish - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
         else:
             seg = get_random_effect(MATCH_WON_EFFECTS)
             broadcast({"on": True, "seg": seg})
+            printv(seg, True)
             printv('Match-won - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
 
     elif msg['event'] == 'game-started':
         seg = get_random_effect(IDLE_EFFECT)
         broadcast({"seg": seg})
         # broadcast({"on": False})
+        printv(seg, True)
         printv('Game-started')
 
 def process_match_cricket(msg):
