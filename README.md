@@ -71,17 +71,6 @@ My favorite effects (WIP): (Please feel free to shout out your favorites on Disc
 | Score-180 (-S180) | 78, 9 |
 
 
-| WLED-Effect-Name | FX | BG | Speed | Width | Duty Cycle |
-| ------------- | ------------- | ------------- | ----------| ------------- | ------------- |
-| Solid | red | D | D | D | D |
-| Android | D | D | D | D | D |
-| Blends | D | D | D | D | D |
-| Blink | red | D | 230 | D | D |
-| Blink Rainbow | D | D | 230 | D | D |
-| Bpm | red | D | 230 | D | D |
-| Rainbow | D | D | D | D | D |
-
-
 
 ## INSTALL INSTRUCTION
 
@@ -148,30 +137,32 @@ Reboot your system.
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://192.168.0.200"
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] ex: "150"
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] ex: "51"
-- -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "13" "14" "15"
-- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
-- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "4" "5" "6"
-- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "7" "8" "9"
-- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "100" "101" "102"
-- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "106" "107" "108"
-- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
-- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
-- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
-- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
+- -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "13" "14" "15"
+- -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] ex: "solid|lightgoldenrodyellow"
+- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
+- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "4" "5" "6"
+- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "7" "8" "9"
+- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "100" "101" "102"
+- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "106" "107" "108"
+- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
+- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
+- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
+- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
 
 x = Random effect everytime
+
 
 For entering colors, use the following link and validate that the color-name you want is available in the list:
 https://www.webucator.com/article/python-color-constants-module/
 
-For entering effects, use an wled-effect-name or the corresponding number to this effect:
+For entering effects, use an wled-effect-name or the corresponding ID:
 https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 
 If you have problems do not hesitate to have a look at "win-exec.bat" file as an example!
 
 
 
-## HELPERS (COMING SOON WIP)
+## HELPERS
 
 If you think it is terrible to configure/start/handling this application then go for autodarts-desktop https://github.com/Semtexmagix/autodarts-desktop
 
@@ -182,14 +173,11 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 
 
 ## TODOs
-- support customizung effect-parameters (brightness, bg, speed, width etc.)
 - try to fix change-too-slow problem (WLED)
 - support presets
 - add quality photos of a setup example
 - error if no effect-arguments are configured
 - error receiving effect-list if WEPS is given with ending '/'
-- brightness configurable
-- support point-areas
 - turn off wled on match-finish
 
 
@@ -201,6 +189,11 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - add high-finish logic
 - initial check is wled reachable download effect-names. (maybe turn on wled-installation(s) for 10 Seconds)
 - let user choose between effect-index and effect-name in arguments
+- support customizung effect-parameters (brightness, bg, speed, width etc.)
+- support point-areas
+- brightness configurable
+- default effect when idle
+
 
 
 ## LAST WORDS

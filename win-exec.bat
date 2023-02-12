@@ -6,6 +6,7 @@ python "autodarts-wled.py" ^
 -BRI "255" ^
 -HFO "51" ^
 -HF "x" ^
+-IDE "solid|lightgoldenrodyellow" ^
 -G "4" "87" "26" "29" "93" "42" "64" ^
 -M "4" "87" "26" "29" "93" "42" "64" ^
 -B "solid" "Blink" ^
