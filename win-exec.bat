@@ -3,9 +3,8 @@ python "autodarts-wled.py" ^
 -I "0.0.0.0" ^
 -P "8081" ^
 -WEPS "your-wled-url" ^
--HSO "100" ^
+-BRI "255" ^
 -HFO "51" ^
--HS "solid|yellow1|blue2" "solid|blue2" ^
 -HF "x" ^
 -G "4" "87" "26" "29" "93" "42" "64" ^
 -M "4" "87" "26" "29" "93" "42" "64" ^
@@ -18,6 +17,6 @@ python "autodarts-wled.py" ^
 -S100 "27" ^
 -S120 "8" ^
 -S140 "81" ^
--S180 "78" "9"
-
-
+-S180 "78" "9" ^
+-A1 "1-15" "solid|green1" "solid|yellow1" "solid|peachpuff1" ^
+-A2 "16-30" "blink|green1" "rainbow|yellow1" "blink|peachpuff2"

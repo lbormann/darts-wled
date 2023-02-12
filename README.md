@@ -143,17 +143,21 @@ Reboot your system.
 
 ### Arguments
 
+- -I / --host_ip [OPTIONAL] [Default: "0.0.0.0"] ex: "192.168.0.20"
+- -P / --host_port [OPTIONAL] [Default: "8081"] ex: "9090"
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://192.168.0.200"
-- -HSO / --high_score_on [OPTIONAL] [Default: None] [Possible values: 1 .. 180] ex: "101"
+- -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] ex: "150"
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 1 .. 170] ex: "51"
-- -HS / --high_score_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 0 .. 117 | x] ex: "10" "11" "12"
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "13" "14" "15"
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "4" "5" "6"
 - -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "7" "8" "9"
 - -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "100" "101" "102"
 - -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "106" "107" "108"
-- -S{0-180} / --score_X_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
+- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
+- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
+- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
+- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: 1 .. 117 | x] ex: "x"
 
 x = Random effect everytime
 
@@ -163,7 +167,7 @@ https://www.webucator.com/article/python-color-constants-module/
 For entering effects, use an wled-effect-name or the corresponding number to this effect:
 https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 
-If you have problems do not hesitate to have a look at "win-exec.bat" file!
+If you have problems do not hesitate to have a look at "win-exec.bat" file as an example!
 
 
 
@@ -182,6 +186,11 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - try to fix change-too-slow problem (WLED)
 - support presets
 - add quality photos of a setup example
+- error if no effect-arguments are configured
+- error receiving effect-list if WEPS is given with ending '/'
+- brightness configurable
+- support point-areas
+- turn off wled on match-finish
 
 
 ### Done
