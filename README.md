@@ -168,22 +168,22 @@ _ _ _ _ _ _ _ _ _ _
 | G (Game-won-effects) | colorloop |
 | M (Match-won-effects) | running\\|orange\\|red1 |
 | B (Busted-effects) | fire 2012 |
-| score0 | breathe\\|orange\\|red1 |
-| score3 | Running |
-| score26 | Dynamic |
-| score180 | Rainbow |
-| area1 | 0-14 solid\\|deeppink1 |
-| area2 | 15-29 solid\\|blue |
-| area3 | 30-44 solid\\|deepskyblue1 |
-| area4 | 45-59 solid\\|green |
-| area5 | 60-74 solid\\|chartreuse1 |
-| area6 | 75-89 solid\\|brick |
-| area7 | 90-104 solid\\|tomato1 |
-| area8 | 105-119 solid\\|tan1 |
-| area9 | 120-134 solid\\|yellow1 |
-| area10 | 135-149 solid\\|purple1 |
-| area11 | 150-164 solid\\|orange |
-| area12 | 165-180 solid\\|red1 |
+| S0 (score0) | breathe\\|orange\\|red1 |
+| S3 (Score 3) | running |
+| S26 (Score 26) | dynamic |
+| S180 (Score 180) | rainbow |
+| A1 (Area 1) | 0-14 solid\\|deeppink1 |
+| A2 (Area 2) | 15-29 solid\\|blue |
+| A3 (Area 3) | 30-44 solid\\|deepskyblue1 |
+| A4 (Area 4) | 45-59 solid\\|green |
+| A5 (Area 5) | 60-74 solid\\|chartreuse1 |
+| A6 (Area 6) | 75-89 solid\\|brick |
+| A7 (Area 7) | 90-104 solid\\|tomato1 |
+| A8 (Area 8) | 105-119 solid\\|tan1 |
+| A9 (Area 9) | 120-134 solid\\|yellow1 |
+| A10 (Area 10) | 135-149 solid\\|purple1 |
+| A11 (Area 11) | 150-164 solid\\|orange |
+| A12 (Area 12) | 165-180 solid\\|red1 |
 
 
 
