@@ -159,16 +159,16 @@ _ _ _ _ _ _ _ _ _ _
 
 
 
-## Community-Profiles
+## Community-Effect-Profiles
 
 | Argument | Tullaris#4778 |
 | --  | -- | 
-| HF (Highfinish-effects) | fire flicker |
-| IDE (Idle-effect) | solid\\|lightgoldenrodyellow |
-| G (Game-won-effects) | colorloop |
-| M (Match-won-effects) | running\\|orange\\|red1 |
-| B (Busted-effects) | fire 2012 |
-| S0 (score0) | breathe\\|orange\\|red1 |
+| HF (Highfinish) | fire flicker |
+| IDE (Idle) | solid\\|lightgoldenrodyellow |
+| G (Game-won) | colorloop |
+| M (Match-won) | running\\|orange\\|red1 |
+| B (Busted) | fire 2012 |
+| S0 (score 0) | breathe\\|orange\\|red1 |
 | S3 (Score 3) | running |
 | S26 (Score 26) | dynamic |
 | S180 (Score 180) | rainbow |
