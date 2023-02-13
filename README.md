@@ -114,22 +114,69 @@ Reboot your system.
 
 ### Arguments
 
-- -I / --host_ip [OPTIONAL] [Default: "0.0.0.0"] ex: "192.168.0.20"
-- -P / --host_port [OPTIONAL] [Default: "8081"] ex: "9090"
-- -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] ex: "http://192.168.0.200"
-- -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] ex: "150"
-- -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] ex: "51"
-- -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "13" "14" "15"
-- -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] [Possible values: See below] ex: "solid|lightgoldenrodyellow"
-- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "x"
-- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "4" "5" "6"
-- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "ps|5" "ps|4"
-- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "100" "101" "102"
-- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "ps|1"
-- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "x"
-- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
-- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
-- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] ex: "x"
+- -I / --host_ip [OPTIONAL] [Default: "0.0.0.0"] 
+    
+    example: **"192.168.0.20"**
+
+- -P / --host_port [OPTIONAL] [Default: "8081"] 
+
+    example: **"9090"**
+
+- -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] 
+
+    example: **"http://192.168.0.200"**
+
+- -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] 
+
+    example: **"150"**
+
+- -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] 
+
+    example: **"51"**
+
+- -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"13" "14" "15"**
+
+- -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] [Possible values: See below] 
+
+    example: **"solid|lightgoldenrodyellow"**
+
+- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"x"**
+
+- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"4" "5" "6"**
+
+- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"ps|5" "ps|4"**
+
+- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"100" "101" "102"**
+
+- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"ps|1"**
+
+- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"x"**
+
+- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"1-15" "solid|green1" "solid|yellow1" "solid"**
+
+- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"141-179" "rainbow" "theater|aliceblue" "beach"**
+
+- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+
+    example: **"x"**
 
 
 
@@ -142,9 +189,9 @@ _ _ _ _ _ _ _ _ _ _
 
 * To set an effect or even multiple effects (randomly chosen everytime), use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
 
-    use: **"solid|red1" or "0|yellow1|orange|peachpuff2"**
+    use: **"{'effect-name' or 'effect-ID'}|{primary-color-name}[|{secondary-color-name}|{tertiary-color-name}]"**
 
-* For color-name usage, validate that the color-name you want is available in the list
+* For color-name usage, validate that the color-name you want is available in the list!
 
     validate at: **https://www.webucator.com/article/python-color-constants-module/**
 
@@ -152,7 +199,7 @@ _ _ _ _ _ _ _ _ _ _
 
     use: **"x"**
 
-* If you have problems do not hesitate to have a look at "win-exec.bat" file as an example!
+* If you have problems do not hesitate to have a look at example file!
 
     learn at: **win-exec.bat**
 
