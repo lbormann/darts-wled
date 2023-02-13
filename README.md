@@ -42,6 +42,7 @@ To find the best possible light-impression without causing problem to dart-recog
 I`ve tested 1.) with a white soft ring. It looks OK, but the recognition algorithmn can NOT handle this: When a led-effect is played it does not recognize pulling.. after pressing next to end the turn, the recognition stops completely and you need to restart your board.
 
 Moreover as a general impression: If the leds are too far away from wall the effect is not good. More far away = more bad - just ez like that.
+In my experience the primary factor causing false-positive recognitions is an excessive high led-brightness; you should limit your leds to a certain power draw (ex. 2500 mA).
 
 Here is my currrent Hardware-Setup (You can google prices yourself):
 * Controller: 1x AZDelivery ESP32 D1 Mini
@@ -50,25 +51,6 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 * Cosmetic: 1x fowong 2m Selbstklebend Dichtungsband 12mm(B) x 12mm(D) x 4m(L) Schaumstoffband (to prevent visible leds)
 * Connector: 4x Wago 221-612 Verbindungsklemme 2 Leiter mit Betätigungshebel 0,5-6 qmm (to easily connect cables)
 * Connector: 2x 3 Pin LED Anschluss 10 mm Lötfreier LED Licht Anschluss (to easily connect led-stripe segments)
-
-
-## WLED-Effects
-
-In WLED you can choose between a pre-installed list of effects. You can find a list of possible effects here:
-https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
-Notice the 'EffectID' in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
-Every autodart-event can be mapped to multiple WLED-Effects. An effect will be randomly determined at runtime.
-In my experience the primary factor causing false-positive recognitions is an excessive configured led-brightness; you should limit your leds to a certain power draw (ex. 2500 mA).
-
-My favorite effects (WIP): (Please feel free to shout out your favorites on Discord ;)
-
-| Autodart-Event | WLED-Effect-ID |
-| ------------- | ------------- |
-| Game-Won (-G) | 4 |
-| Match-Won (-M) | 4, 87 |
-| Busted (-B) | 0 |
-| Score-140 (-S140) | 81 |
-| Score-180 (-S180) | 78, 9 |
 
 
 
@@ -151,21 +133,82 @@ Reboot your system.
 
 
 
+_ _ _ _ _ _ _ _ _ _
+
+
 * To set a preset or playlists, use the displayed ID in WLED! 
 
-    usage: "ps|{ID}"
+    use: **"ps|{ID}"**
 
 * To set an effect, use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
 
-    usage: "solid|red1" or "0|yellow1|orange|peachpuff2"
+    use: **"solid|red1" or "0|yellow1|orange|peachpuff2"**
 
-* For color-name usage, validate at https://www.webucator.com/article/python-color-constants-module/ that the color-name you want is available in the list. 
+* For color-name usage, validate that the color-name you want is available in the list
+
+    validate at: **https://www.webucator.com/article/python-color-constants-module/**
 
 * To set an random effect, use 'x' or 'X' as effect-id
 
-    usage: "x"
+    use: **"x"**
 
 * If you have problems do not hesitate to have a look at "win-exec.bat" file as an example!
+
+    learn at: **win-exec.bat**
+
+
+
+
+
+## Community-Profiles
+
+
+
+In WLED you can activate pre-installed effects. You can find a list of possible effects here:
+https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
+Notice the 'EffectID' in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
+Every autodart-event can be mapped to multiple WLED-Effects: An effect will be then randomly determined at runtime.
+
+
+
+
+-HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "13" "14" "15"
+- -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] ex: "solid|lightgoldenrodyellow"
+- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
+- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "4" "5" "6"
+- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "ps|5" "ps|4"
+- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "100" "101" "102"
+- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "ps|1"
+- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
+- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
+- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
+- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
+
+
+
+| Argument | Tullaris#4778 |
+| --  | -- | 
+| HF (Highfinish-effects) | fire flicker |
+| IDE (Idle-effect) | solid|lightgoldenrodyellow |
+| G (Game-won-effects) | colorloop |
+| M (Match-won-effects) | running|orange|red1 |
+| B (Busted-effects) | fire 2012 |
+| score0 | breathe|orange|red1 |
+| score3 | Running |
+| score26 | Dynamic |
+| score180 | Rainbow |
+| area1 | 0-14 solid|deeppink1 |
+| area2 | 15-29 solid|blue |
+| area3 | 30-44 solid|deepskyblue1 |
+| area4 | 45-59 solid|green |
+| area5 | 60-74 solid|chartreuse1 |
+| area6 | 75-89 solid|brick |
+| area7 | 90-104 solid|tomato1 |
+| area8 | 105-119 solid|tan1 |
+| area9 | 120-134 solid|yellow1 |
+| area10 | 135-149 solid|purple1 |
+| area11 | 150-164 solid|orange |
+| area12 | 165-180 solid|red1 |
 
 
 
