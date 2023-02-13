@@ -164,26 +164,26 @@ _ _ _ _ _ _ _ _ _ _
 | Argument | Tullaris#4778 |
 | --  | -- | 
 | HF (Highfinish-effects) | fire flicker |
-| IDE (Idle-effect) | solid|lightgoldenrodyellow |
+| IDE (Idle-effect) | solid\\|lightgoldenrodyellow |
 | G (Game-won-effects) | colorloop |
-| M (Match-won-effects) | running|orange|red1 |
+| M (Match-won-effects) | running\\|orange\\|red1 |
 | B (Busted-effects) | fire 2012 |
-| score0 | breathe|orange|red1 |
+| score0 | breathe\\|orange\\|red1 |
 | score3 | Running |
 | score26 | Dynamic |
 | score180 | Rainbow |
-| area1 | 0-14 solid|deeppink1 |
-| area2 | 15-29 solid|blue |
-| area3 | 30-44 solid|deepskyblue1 |
-| area4 | 45-59 solid|green |
-| area5 | 60-74 solid|chartreuse1 |
-| area6 | 75-89 solid|brick |
-| area7 | 90-104 solid|tomato1 |
-| area8 | 105-119 solid|tan1 |
-| area9 | 120-134 solid|yellow1 |
-| area10 | 135-149 solid|purple1 |
-| area11 | 150-164 solid|orange |
-| area12 | 165-180 solid|red1 |
+| area1 | 0-14 solid\\|deeppink1 |
+| area2 | 15-29 solid\\|blue |
+| area3 | 30-44 solid\\|deepskyblue1 |
+| area4 | 45-59 solid\\|green |
+| area5 | 60-74 solid\\|chartreuse1 |
+| area6 | 75-89 solid\\|brick |
+| area7 | 90-104 solid\\|tomato1 |
+| area8 | 105-119 solid\\|tan1 |
+| area9 | 120-134 solid\\|yellow1 |
+| area10 | 135-149 solid\\|purple1 |
+| area11 | 150-164 solid\\|orange |
+| area12 | 165-180 solid\\|red1 |
 
 
 
