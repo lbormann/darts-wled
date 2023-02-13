@@ -140,7 +140,7 @@ _ _ _ _ _ _ _ _ _ _
 
     use: **"ps|{ID}"**
 
-* To set an effect, use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
+* To set an effect or even multiple effects (randomly chosen everytime), use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
 
     use: **"solid|red1" or "0|yellow1|orange|peachpuff2"**
 
@@ -159,32 +159,7 @@ _ _ _ _ _ _ _ _ _ _
 
 
 
-
 ## Community-Profiles
-
-
-
-In WLED you can activate pre-installed effects. You can find a list of possible effects here:
-https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
-Notice the 'EffectID' in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
-Every autodart-event can be mapped to multiple WLED-Effects: An effect will be then randomly determined at runtime.
-
-
-
-
--HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "13" "14" "15"
-- -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] ex: "solid|lightgoldenrodyellow"
-- -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
-- -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "4" "5" "6"
-- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "ps|5" "ps|4"
-- -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "100" "101" "102"
-- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "ps|1"
-- -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
-- -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
-- -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
-- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
-
-
 
 | Argument | Tullaris#4778 |
 | --  | -- | 
