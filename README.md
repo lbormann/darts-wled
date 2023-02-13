@@ -3,7 +3,7 @@
 Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/autodarts-caller is needed that sends the thrown points from https://autodarts.io to this application.
 
 Tested on Windows 10 & 11 Pro x64, Python 3.9.7, 
-WLED-Installation 0.14.0-b1 (LED-Stripe SK6812 RGBNW 60leds/m - 4,4 meters powered by a 60W power adapter running on an ESP32 D1 Mini)
+WLED-Installation 0.14.0-b1 (0.11.0 at minimum required) (LED-Stripe SK6812 RGBNW 60leds/m - 4,4 meters powered by a 60W power adapter running on an ESP32 D1 Mini)
 
 
 ## COMPATIBILITY
@@ -58,7 +58,7 @@ In WLED you can choose between a pre-installed list of effects. You can find a l
 https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 Notice the 'EffectID' in the first column: this ID is your friend if you want to map an autodart-event to a wled-effect.
 Every autodart-event can be mapped to multiple WLED-Effects. An effect will be randomly determined at runtime.
-In my experience the primary factor causing false-positive recognitions in autodarts is a configured led-brightness. You should limit your leds to a certain power draw.
+In my experience the primary factor causing false-positive recognitions is an excessive configured led-brightness; you should limit your leds to a certain power draw (ex. 2500 mA).
 
 My favorite effects (WIP): (Please feel free to shout out your favorites on Discord ;)
 
@@ -141,24 +141,31 @@ Reboot your system.
 - -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] ex: "solid|lightgoldenrodyellow"
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "4" "5" "6"
-- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "7" "8" "9"
+- -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "ps|5" "ps|4"
 - -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "100" "101" "102"
-- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "106" "107" "108"
+- -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "ps|1"
 - -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
 - -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "1-15" "solid|green1" "solid|yellow1" "solid"
 - -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "141-179" "rainbow" "theater|aliceblue" "beach"
 - -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] ex: "x"
 
-x = Random effect everytime
 
 
-For entering colors, use the following link and validate that the color-name you want is available in the list:
-https://www.webucator.com/article/python-color-constants-module/
+* To set a preset or playlists, use the displayed ID in WLED! 
 
-For entering effects, use an wled-effect-name or the corresponding ID:
-https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
+    usage: "ps|{ID}"
 
-If you have problems do not hesitate to have a look at "win-exec.bat" file as an example!
+* To set an effect, use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
+
+    usage: "solid|red1" or "0|yellow1|orange|peachpuff2"
+
+* For color-name usage, validate at https://www.webucator.com/article/python-color-constants-module/ that the color-name you want is available in the list. 
+
+* To set an random effect, use 'x' or 'X' as effect-id
+
+    usage: "x"
+
+* If you have problems do not hesitate to have a look at "win-exec.bat" file as an example!
 
 
 
@@ -173,10 +180,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 
 
 ## TODOs
-- try to fix change-too-slow problem (WLED)
-- support presets
 - add quality photos of a setup example
-- error if no effect-arguments are configured
 - error receiving effect-list if WEPS is given with ending '/'
 - turn off wled on match-finish
 
@@ -193,6 +197,8 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - support point-areas
 - brightness configurable
 - default effect when idle
+- try to fix change-too-slow problem (WLED)
+- support presets + playlists
 
 
 

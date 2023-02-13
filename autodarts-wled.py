@@ -25,7 +25,7 @@ BOGEY_NUMBERS = [169,168,166,165,163,162,159]
 SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
 
-VERSION = '1.2.4'
+VERSION = '1.3.0'
 DEBUG = False
 
 
@@ -64,9 +64,9 @@ def broadcast_intern(endpoint, data):
         # log_and_print('FAILED INTERN BROADCAST: ', e)
         return
 
-def get_random_effect(effect_list):
+def get_state(effect_list):
     if effect_list == ["x"] or effect_list == ["X"]:
-        return {"fx": str(random.choice(WLED_EFFECT_ID_LIST)) } 
+        return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
     else:
         return random.choice(effect_list)
 
@@ -75,25 +75,26 @@ def parse_effects_argument(effects_argument):
     if effects_argument == None or effects_argument == ["x"] or effects_argument == ["X"]:
         return effects_argument
 
-    # effects_argument = 
-    #     "solid|blueviolet" 
-    #     "solid|blue" 
-    #     "solid|aliceblue"
-
-    # return:
-    # {"fx": 11, col: [[0,0,255,0]]}
-
     parsed_list = list()
     for effect in effects_argument:
         try:
             effect_params = effect.split(EFFECT_PARAMETER_SEPARATOR)
-
-            # effect-id (fx)
-            effect_declaration = effect_params[0].strip()
-            if effect_declaration.isdigit() == False:
+            effect_declaration = effect_params[0].strip().lower()
+            
+            # preset/ playlist
+            if effect_declaration == 'ps':
+                state = {effect_declaration : effect_params[1] }
+                parsed_list.append(state)
+                continue
+            
+            # effect by name
+            elif effect_declaration.isdigit() == False:
                 effect_id = str(WLED_EFFECTS.index(effect_declaration))
+            
+            # effect by ID
             else:
                 effect_id = effect_declaration
+            
 
             seg = {"fx": effect_id}
             
@@ -137,10 +138,10 @@ def parse_effects_argument(effects_argument):
 
             # print(seg)
 
-            parsed_list.append(seg)
+            parsed_list.append({"seg": seg})
 
         except Exception as e:
-            log_and_print("Failed to translate names to numbers: ", e)
+            log_and_print("Failed to parse event-configuration: ", e)
             continue
 
     return parsed_list   
@@ -155,80 +156,59 @@ def parse_score_area_effects_argument(score_area_effects_arguments):
     else:
         raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
 
+def control_wled(effect_list, ptext):
+    state = get_state(effect_list)
+    state.update({'on': True})
+    broadcast(state)
+    printv(ptext + ' - WLED: ' + str(state)) 
         
+
+
+
 def process_match_x01(msg):
 
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         if SCORE_EFFECTS[val] != None:
-            seg = get_random_effect(SCORE_EFFECTS[val])
-            broadcast({"on": True, "seg": seg})
-            printv(seg, True)
-            printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])]) 
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
         else:
             area_found = False
+            ival = int(val)
             for SAE in SCORE_AREA_EFFECTS:
                 if SCORE_AREA_EFFECTS[SAE] != None:
-                    ((area_from, area_to), parsed_effects) = SCORE_AREA_EFFECTS[SAE]
-                    ival = int(val)
+                    ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
+                    
                     if ival >= area_from and ival <= area_to:
-                        seg = get_random_effect(parsed_effects)
-                        broadcast({"on": True, "seg": seg})
-                        printv(seg, True)
-                        printv('Darts-thrown: ' + val + ' - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
                         area_found = True
                         break
             if area_found == False:
-                printv('Darts-thrown: ' + val + ' - NO effect configured!')
+                printv('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'darts-pulled':
-        seg = get_random_effect(IDLE_EFFECT)
-        # broadcast({"on": False})
-        # "on": False, 
-        broadcast({"seg": seg})
-        printv(seg, True)
-        printv('Darts-pulled')
+        control_wled(IDLE_EFFECT, 'Darts-pulled')
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS != None:
-        seg = get_random_effect(BUSTED_EFFECTS)
-        broadcast({"on": True, "seg": seg})
-        printv(seg, True)
-        printv('Busted - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+        control_wled(BUSTED_EFFECTS, 'Busted!')
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS != None:
         if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
-            seg = get_random_effect(HIGH_FINISH_EFFECTS)
-            broadcast({"on": True, "seg": seg})
-            printv(seg, True)
-            printv('Game-won - Highfinish - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH')
         else:
-            seg = get_random_effect(GAME_WON_EFFECTS)
-            broadcast({"on": True, "seg": seg})
-            printv(seg, True)
-            printv('Game-won - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+            control_wled(GAME_WON_EFFECTS, 'Game-won')
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS != None:
         if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
-            seg = get_random_effect(HIGH_FINISH_EFFECTS)
-            broadcast({"on": True, "seg": seg})
-            printv(seg, True)
-            printv('Match-won - Highfinish - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH')
         else:
-            seg = get_random_effect(MATCH_WON_EFFECTS)
-            broadcast({"on": True, "seg": seg})
-            printv(seg, True)
-            printv('Match-won - Playing effect ' + seg['fx'] + ' = ' + WLED_EFFECTS[int(seg['fx'])])
+            control_wled(MATCH_WON_EFFECTS, 'Match-won')
 
     elif msg['event'] == 'game-started':
-        seg = get_random_effect(IDLE_EFFECT)
-        broadcast({"seg": seg})
-        # broadcast({"on": False})
-        printv(seg, True)
-        printv('Game-started')
+        control_wled(IDLE_EFFECT, 'Game-started')
+
 
 def process_match_cricket(msg):
    print('not implement')
-
 
 
 
@@ -310,9 +290,7 @@ if __name__ == "__main__":
         printv("Your WLED-Endpoint offers " + str(len(WLED_EFFECTS)) + " effects")
 
         IDLE_EFFECT = parse_effects_argument(args['idle_effect'])
-        # Turn off on start to prevent bad recognition on running autodarts-game
-        seg = get_random_effect(IDLE_EFFECT)
-        broadcast({"seg": seg})
+        control_wled(IDLE_EFFECT, 'APP STARTED!')
     except Exception as e:
         log_and_print("Failed on receiving effect-list from WLED-Endpoint", e)
 
@@ -326,12 +304,12 @@ if __name__ == "__main__":
     for v in range(0, 181):
         parsed_score = parse_effects_argument(args["score_" + str(v) + "_effects"])
         SCORE_EFFECTS[str(v)] = parsed_score
-        # print(parsed_score)
+        printv(parsed_score, True)
     SCORE_AREA_EFFECTS = dict()
     for a in range(1, 13):
         parsed_score_area = parse_score_area_effects_argument(args["score_area_" + str(a) + "_effects"])
         SCORE_AREA_EFFECTS[a] = parsed_score_area
-        # print(parsed_score_area)
+        printv(parsed_score_area, True)
 
 
     osType = platform.system()

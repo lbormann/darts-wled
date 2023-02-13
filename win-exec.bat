@@ -9,7 +9,7 @@ python "autodarts-wled.py" ^
 -IDE "solid|lightgoldenrodyellow" ^
 -G "4" "87" "26" "29" "93" "42" "64" ^
 -M "4" "87" "26" "29" "93" "42" "64" ^
--B "solid" "Blink" ^
+-B "solid|red1" "1|red1" ^
 -S26 "84" ^
 -S45 "Phased" ^
 -S41 "Phased" ^
@@ -17,7 +17,7 @@ python "autodarts-wled.py" ^
 -S80 "29|blueviolet|yellow|yellow1" "rainbow|blue|yellow|yellow1" "13|aliceblue|yellow|yellow1" ^
 -S100 "27" ^
 -S120 "8" ^
--S140 "81" ^
+-S140 "ps|3" ^
 -S180 "78" "9" ^
--A1 "1-15" "solid|green1" "solid|yellow1" "solid|peachpuff1" ^
+-A1 "1-60" "ps|2" "solid|yellow1" ^
 -A2 "16-30" "blink|green1" "rainbow|yellow1" "blink|peachpuff2"
