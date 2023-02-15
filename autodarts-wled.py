@@ -1,5 +1,4 @@
 import os
-from os import path
 import json
 import platform
 import random
@@ -21,11 +20,11 @@ WLED_EFFECT_LIST_PATH = '/json/eff'
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|black'
 EFFECT_PARAMETER_SEPARATOR = "|"
-BOGEY_NUMBERS = [169,168,166,165,163,162,159]
-SUPPORTED_CRICKET_FIELDS = [15,16,17,18,19,20,25]
+BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
+SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
 
-VERSION = '1.3.0'
+VERSION = '1.3.1'
 DEBUG = False
 
 
@@ -42,7 +41,6 @@ def parseUrl(str):
     return parsedUrl.scheme + '://' + parsedUrl.netloc + parsedUrl.path.rstrip("/")
     
 def log_and_print(message, obj):
-    printv(message + repr(obj))
     logger.exception(message + str(obj))
     
 
@@ -87,56 +85,45 @@ def parse_effects_argument(effects_argument):
                 parsed_list.append(state)
                 continue
             
+            # effect by ID
+            elif effect_declaration.isdigit() == True:
+                effect_id = effect_declaration
+
             # effect by name
-            elif effect_declaration.isdigit() == False:
+            else:
                 effect_id = str(WLED_EFFECTS.index(effect_declaration))
             
-            # effect by ID
-            else:
-                effect_id = effect_declaration
-            
-
             seg = {"fx": effect_id}
-            
-            # colors 1 - 3 (primary, secondary, tertiary)
-            colours = list()
-            if len(effect_params) >= 2:
-                effect_color_primary = effect_params[1].strip()
-                if effect_color_primary.isdigit() == False:
-                    effect_color_primary = WLED_COLORS[effect_color_primary]
-                effect_color_primary = list(effect_color_primary)
-                effect_color_primary.append(0)
-                colours = [effect_color_primary]
-                
-            if len(effect_params) == 3:
-                effect_color_secondary = effect_params[2].strip()
-                if effect_color_secondary.isdigit() == False:
-                    effect_color_secondary = WLED_COLORS[effect_color_secondary]
-                effect_color_secondary = list(effect_color_secondary)
-                effect_color_secondary.append(0)
-                colours.append(effect_color_secondary)
 
-            if len(effect_params) == 4:
-                effect_color_tertiary = effect_params[3].strip()
-                if effect_color_tertiary.isdigit() == False:
-                    effect_color_tertiary = WLED_COLORS[effect_color_tertiary]
-                effect_color_tertiary = list(effect_color_tertiary)
-                effect_color_tertiary.append(0)
-                colours.append(effect_color_tertiary)
+            # everying else .. can have different positions
+
+            # p30
+            # ie: "61-120" "29|blueviolet|s255|i255|red1|green1"
+           
+            colours = list()
+            for ep in effect_params[1:]:
+
+                param_key = ep[0].strip().lower()
+                param_value = ep[1:].strip().lower()
+
+                # s = speed (sx)
+                if param_key == 's' and param_value.isdigit() == True:
+                    seg["sx"] = param_value
+                # i = intensity (ix)
+                elif param_key == 'i' and param_value.isdigit() == True:
+                    seg["ix"] = param_value
+                # p = palette (pal)
+                elif param_key == 'p' and param_value.isdigit() == True:
+                    seg["pal"] = param_value
+                # colors 1 - 3 (primary, secondary, tertiary)
+                else:
+                    color = WLED_COLORS[param_key + param_value]
+                    color = list(color)
+                    color.append(0)
+                    colours.append(color)
 
             if len(colours) > 0:
                 seg["col"] = colours
-
-            # TODO
-
-            # speed (sx)
-            
-            # intensity (ix)
-
-            # palette-id (pal)
-
-
-            # print(seg)
 
             parsed_list.append({"seg": seg})
 
@@ -192,20 +179,22 @@ def process_match_x01(msg):
         control_wled(BUSTED_EFFECTS, 'Busted!')
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS != None:
-        if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
+        if HIGH_FINISH_ON != None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
             control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH')
         else:
             control_wled(GAME_WON_EFFECTS, 'Game-won')
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS != None:
-        if HIGH_FINISH_ON != None and int(msg['game']['turnPoints']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
+        if HIGH_FINISH_ON != None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
             control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH')
         else:
             control_wled(MATCH_WON_EFFECTS, 'Match-won')
 
+    elif msg['event'] == 'match-started':
+        control_wled(IDLE_EFFECT, 'Match-started')
+
     elif msg['event'] == 'game-started':
         control_wled(IDLE_EFFECT, 'Game-started')
-
 
 def process_match_cricket(msg):
    print('not implement')

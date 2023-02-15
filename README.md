@@ -183,13 +183,29 @@ Reboot your system.
 _ _ _ _ _ _ _ _ _ _
 
 
+
+Examples: 
+| Argument | [condition] | effect 1 | effect 2 | effect 3 | effect x |
+| --  | -- | -- | --  | -- | -- | 
+|-B |  | solid\\|red1 | solid\\|blue2 | | | |
+|-A1 | 0-15 | 1\\|s255\\|i255\\|green1\\|red2 | solid\\|red1 | breathe\\|yellow1\\|blue2\\|s170\\|i40 | | |
+
+The first argument-definition shows the event 'Busted': Busting will result in playing one of the 2 defined effects: solid (red) and solid (blue).
+
+The second argument-definition shows a defined 'Score-area': recognized scores between 0 and 15 will result in playing one of the 3 effects: blink (ID: 1), breathe or solid. For every of those effects we defined different colors, speeds and intensities; only the effect-name/effect-ID is required; everything else is an option.
+
+
 * To set a preset or playlists, use the displayed ID in WLED! 
 
-    use: **"ps|{ID}"**
+    syntax: **"ps|{ID}"**
 
-* To set an effect or even multiple effects (randomly chosen everytime), use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
+* To set an effect, use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
 
-    use: **"{'effect-name' or 'effect-ID'}|{primary-color-name}[|{secondary-color-name}|{tertiary-color-name}]"**
+    syntax: **"{'effect-name' or 'effect-ID'}|{primary-color-name}|{secondary-color-name}|{tertiary-color-name}]"**
+
+* To set effect- speed, intensity, palette
+
+    syntax: **"{'effect-name' or 'effect-ID'}|s{1-255}|i{1-255}|p{palette-ID}]"**
 
 * For color-name usage, validate that the color-name you want is available in the list!
 
@@ -197,7 +213,7 @@ _ _ _ _ _ _ _ _ _ _
 
 * To set an random effect, use 'x' or 'X' as effect-id
 
-    use: **"x"**
+    syntax: **"x"**
 
 * If you have problems do not hesitate to have a look at example file!
 
@@ -233,6 +249,13 @@ _ _ _ _ _ _ _ _ _ _
 | A12 (Area 12) | 165-180 solid\\|red1 |
 
 
+## !!! IMPORTANT !!!
+
+This application requires a running instance of autodarts-caller https://github.com/lbormann/autodarts-caller
+Moreover you need to configure the WTT-argument in autodarts-caller to delegate incoming game-events to this application.
+Let`s say you drive both - the caller and wled on the same machine, then you fill WTT with '127.0.0.1:8081' Do not use 'localhost' as the name needs to be resolved by os that can cost addional time until the game-event reaches wled.
+
+
 
 ## HELPERS
 
@@ -245,12 +268,17 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 
 
 ## TODOs
+
 - add quality photos of a setup example
 - error receiving effect-list if WEPS is given with ending '/'
 - turn off wled on match-finish
+- improve Readme: explain arguments, add example for starting app
+- add game-mode variable to arguments
+- care about powerstate of WLED; cause crash on start possible now
 
 
 ### Done
+
 - create receiver-endpoint
 - support events with multiple effects that chosen randomly
 - send events to wled-instance(s)
@@ -258,12 +286,13 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - add high-finish logic
 - initial check is wled reachable download effect-names. (maybe turn on wled-installation(s) for 10 Seconds)
 - let user choose between effect-index and effect-name in arguments
-- support customizung effect-parameters (brightness, bg, speed, width etc.)
+- support customizung effect-parameters
 - support point-areas
 - brightness configurable
 - default effect when idle
 - try to fix change-too-slow problem (WLED)
 - support presets + playlists
+- add wled-vars: speed, intensity, palette
 
 
 
