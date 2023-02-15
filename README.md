@@ -81,6 +81,10 @@ Go to download-directory and type:
 
 ## RUN IT
 
+### Prerequisite
+
+You need to have a running caller - https://github.com/lbormann/autodarts-caller - (latest version) with configured 'WTT'-Argument (http://127.0.0.1:8081)
+
 ### Run by executable (Windows)
 
 Create a shortcut of the executable; right click on the shortcut -> select properties -> add arguments in the target input at the end of the text field.
