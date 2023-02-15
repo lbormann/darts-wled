@@ -257,7 +257,7 @@ The second argument-definition shows a defined 'Score-area': recognized scores b
 
 This application requires a running instance of autodarts-caller https://github.com/lbormann/autodarts-caller
 Moreover you need to configure the WTT-argument in autodarts-caller to delegate incoming game-events to this application.
-Let`s say you drive both - the caller and wled on the same machine, then you fill WTT with '127.0.0.1:8081' Do not use 'localhost' as the name needs to be resolved by os that can cost addional time until the game-event reaches wled.
+Let`s say you drive both - the caller and wled on the same machine, then you fill WTT with 'http://127.0.0.1:8081' Do not use 'localhost' as the name needs to be resolved by os that can cost addional time until the game-event reaches wled.
 
 
 
