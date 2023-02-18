@@ -12,7 +12,7 @@ logger=logging.getLogger()
 from color_constants import colors as WLED_COLORS
 from flask import Flask, request
 app = Flask(__name__)
-
+import time
 
 
 WLED_STATE_PATH = '/json/state'
@@ -22,9 +22,9 @@ DEFAULT_EFFECT_IDLE = 'solid|black'
 EFFECT_PARAMETER_SEPARATOR = "|"
 BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
-SUPPORTED_GAME_VARIANTS = ['X01', 'Random Checkout'] # 'Cricket'
+SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
 
-VERSION = '1.3.1'
+VERSION = '1.3.2'
 DEBUG = False
 
 
@@ -56,7 +56,7 @@ def broadcast(data):
 
 def broadcast_intern(endpoint, data):
     try:
-        requests.post(endpoint, json=data, verify=False)    
+        requests.post(endpoint, json=data, verify=False)   
     except:  
     # except Exception as e:
         # log_and_print('FAILED INTERN BROADCAST: ', e)
@@ -137,7 +137,7 @@ def parse_score_area_effects_argument(score_area_effects_arguments):
     if score_area_effects_arguments == None:
         return score_area_effects_arguments
 
-    area = score_area_effects_arguments[0].split('-')
+    area = score_area_effects_arguments[0].strip().split('-')
     if len(area) == 2 and area[0].isdigit() and area[1].isdigit():
         return ((int(area[0]), int(area[1])), parse_effects_argument(score_area_effects_arguments[1:]))
     else:
@@ -147,13 +147,20 @@ def control_wled(effect_list, ptext):
     state = get_state(effect_list)
     state.update({'on': True})
     broadcast(state)
-    printv(ptext + ' - WLED: ' + str(state)) 
+    printv(ptext + ' - WLED: ' + str(state))
+
+    if(EFFECT_DURATION > 0):
+        time.sleep(EFFECT_DURATION)
+        state = get_state(IDLE_EFFECT)
+        state.update({'on': True})
+        broadcast(state)
+
+
         
 
 
 
 def process_match_x01(msg):
-
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         if SCORE_EFFECTS[val] != None:
@@ -196,9 +203,6 @@ def process_match_x01(msg):
     elif msg['event'] == 'game-started':
         control_wled(IDLE_EFFECT, 'Game-started')
 
-def process_match_cricket(msg):
-   print('not implement')
-
 
 
 
@@ -210,7 +214,7 @@ def dartsThrown():
         # print(msg)
 
         mode = msg['game']['mode']
-        if mode == 'X01' or mode == 'Random Checkout':
+        if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
             process_match_x01(msg)
         # elif mode == 'Cricket':
         #     process_match_cricket(msg)
@@ -231,6 +235,7 @@ if __name__ == "__main__":
     ap.add_argument("-P", "--host_port", default="8081", required=False, help="port to be reachable by data feeder")
     ap.add_argument("-WEPS", "--wled_endpoints", required=True, nargs='+', help="Url(s) to wled instance(s)")
     ap.add_argument("-BRI", "--effect_brightness", type=int, choices=range(1, 256), default=DEFAULT_EFFECT_BRIGHTNESS, required=False, help="Brightness of current effect")
+    ap.add_argument("-DU", "--effect_duration", type=int, choices=range(0, 10), default=0, required=False, help="Duration of a played effect in seconds. After that WLED returns to idle. 0 means infinity duration.")
     ap.add_argument("-HFO", "--high_finish_on", type=int, choices=range(1, 171), default=None, required=False, help="TODO")
     ap.add_argument("-HF", "--high_finish_effects", default=None, required=False, nargs='*', help="WLED effect-definition when high-finish occurs")
     ap.add_argument("-IDE", "--idle_effect", default=[DEFAULT_EFFECT_IDLE], required=False, nargs='*', help="WLED effect-definition when waiting for throw")
@@ -263,6 +268,7 @@ if __name__ == "__main__":
     WLED_ENDPOINTS = parsedList
 
     EFFECT_BRIGHTNESS = args['effect_brightness']
+    EFFECT_DURATION = args['effect_duration']
 
     HIGH_FINISH_ON = args['high_finish_on']
 

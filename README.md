@@ -14,7 +14,7 @@ o = not (yet) supported
 | Variant | Support |
 | ------------- | ------------- |
 | X01 | x |
-| Cricket | o |
+| Cricket | x |
 | Bermuda | o |
 | Shanghai | o |
 | Gotcha | o |
@@ -66,7 +66,7 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 #### Setup python3
 
 - Download and install python 3.x.x for your specific os.
-- Download and install pip
+- Download and install pip.
 
 
 #### Get the project
@@ -97,7 +97,7 @@ Click on the shortcut to start the application.
 
 ### Run by source
 
-    python autodarts-wled.py -WEPS "your-wled-url"
+    python3 autodarts-wled.py -WEPS "your-wled-url"
 
 
 
@@ -107,7 +107,7 @@ Click on the shortcut to start the application.
 
 At the end of the file add:
 
-    @reboot sleep 30 && cd <absolute-path-to>/autodarts-wled && python autodarts-wled.py -WEPS "your-wled-url"
+    @reboot sleep 30 && cd <absolute-path-to>/autodarts-wled && python3 autodarts-wled.py -WEPS "your-wled-url"
 
 Make sure you add an empty line under the added command.
 
@@ -119,80 +119,95 @@ Reboot your system.
 ### Arguments
 
 - -I / --host_ip [OPTIONAL] [Default: "0.0.0.0"] 
-    
-    example: **"192.168.0.20"**
-
 - -P / --host_port [OPTIONAL] [Default: "8081"] 
-
-    example: **"9090"**
-
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] 
-
-    example: **"http://192.168.0.200"**
-
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] 
-
-    example: **"150"**
-
+- -DU / --effect_duration [OPTIONAL] [Default: 0] [Possible values: 0 .. 10] 
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] 
-
-    example: **"51"**
-
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"13" "14" "15"**
-
 - -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] [Possible values: See below] 
-
-    example: **"solid|lightgoldenrodyellow"**
-
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"x"**
-
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"4" "5" "6"**
-
 - -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"ps|5" "ps|4"**
-
 - -S0 / --score_0_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"100" "101" "102"**
-
 - -S180 / --score_180_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"ps|1"**
-
 - -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"x"**
-
 - -A1 / --score_area_1_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"1-15" "solid|green1" "solid|yellow1" "solid"**
-
 - -A2 / --score_area_2_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-
-    example: **"141-179" "rainbow" "theater|aliceblue" "beach"**
-
 - -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 
-    example: **"x"**
 
+
+#### **-I / --host_ip**
+
+This is your network adress whereat autodarts-caller or other compatible services can send event-data to trigger your wled(s). By Default this is 0.0.0.0 (means your local ip-address / usually you do not need to change this)
+    
+#### **-P / --host_port**
+
+By analogy with -I there is a port which belongs to the address. By Default this is 8081 (usually you do not need to change this)
+
+#### **-WEPS / --wled_endpoints**
+
+Url to your WLED-Website. You can define multiple urls.
+
+#### **-BRI / --effect_brightness**
+
+Brightness for WLED-effects. You can choose a value between 1 and 255. By default this is 175.
+
+#### **-DU / --effect_duration**
+
+Time, in seconds, after a triggered effect/preset/playlist will return to idle-effect. By default this is 0 (infinity duration = return to idle happens when you pull your darts)
+
+#### **-HFO / --high_finish_on**
+
+Define what a highfinish means for you. Choose a score-value between 2 and 170. This value is relevant for argument '-HF'. By default this is not set = no effects for 'Highfinishes'.
+
+#### **-HF / --high_finish_effects**
+
+Controls your wled(s) when a high-finish occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+#### **-IDE / --idle_effect**
+
+Controls your wled(s) when dart-pulling occured (Waiting for dart-throw). You can disable leds by defining an effect 'solid|black' which is the default value.
+Define an effect/preset/playlist that gets triggered after dart-pulling. For examples see below!
+
+#### **-G / --game_won_effects**
+
+Controls your wled(s) when a game won occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+#### **-M / --match_won_effects**
+
+Controls your wled(s) when a match won occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+#### **-B / --busted_effects**
+
+Controls your wled(s) when a bust occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+#### **-S{0-180} / --score_{0-180}_effects**
+
+Controls your wled(s) when a specific score occurs. You can define every score-value between 0 and 180.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+#### **-A{1-12} / --score_area_{1-12}_effects**
+
+Besides the definition of single score-values you can define up to 12 score-areas.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
 
 _ _ _ _ _ _ _ _ _ _
 
 
+#### Examples: 
 
-Examples: 
 | Argument | [condition] | effect 1 | effect 2 | effect 3 | effect x |
 | --  | -- | -- | --  | -- | -- | 
 |-B |  | solid\\|red1 | solid\\|blue2 | | | |
 |-A1 | 0-15 | 1\\|s255\\|i255\\|green1\\|red2 | solid\\|red1 | breathe\\|yellow1\\|blue2\\|s170\\|i40 | | |
+|-A2 | 16-60 | ps\\|3 | | | 
 
 The first argument-definition shows the event 'Busted': Busting will result in playing one of the 2 defined effects: solid (red) and solid (blue).
 
@@ -275,11 +290,11 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 
 - add quality photos of a setup example
 - error receiving effect-list if WEPS is given with ending '/'
+- receive effect-list from all configured endpoints
 - turn off wled on match-finish
-- improve Readme: explain arguments, add example for starting app
 - add game-mode variable to arguments
 - care about powerstate of WLED; cause crash on start possible now
-
+- effect-IDs > 117 have probs (ex 118)
 
 ### Done
 
@@ -297,6 +312,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - try to fix change-too-slow problem (WLED)
 - support presets + playlists
 - add wled-vars: speed, intensity, palette
+- improve Readme: explain arguments, add example for starting app
 
 
 
