@@ -35,11 +35,11 @@ o = not (yet) supported
 ## Best working and looking LED-Location
 
 To find the best possible light-impression without causing problem to dart-recognition algorithmn, I tried different led-stripe positions: 
-1. As main lighting (in a plasma lighting ring): It`s way too dark - ugly as my softring is black (It should be definitely better with a white one).
+1. As main lighting (in a plasma lighting ring): It`s way too dark - ugly as my surround is black (It should be definitely better with a white one).
 2. Around the plasma lighting ring (outside): Not really a light-effect at all, as light has nothing to shine at.
-3. Around my softring: Works best and looks nice! But you need a bright background/wall.
+3. Around my surround: Works best and looks nice! But you need a bright background/wall.
 
-I`ve tested 1.) with a white soft ring. It looks OK, but the recognition algorithmn can NOT handle this: When a led-effect is played it does not recognize pulling.. after pressing next to end the turn, the recognition stops completely and you need to restart your board.
+I`ve tested 1.) with a white surround. It looks OK, but the recognition algorithmn can NOT handle this: When a led-effect is played it does not recognize pulling.. after pressing next to end the turn, the recognition stops completely and you need to restart your board.
 
 Moreover as a general impression: If the leds are too far away from wall the effect is not good. More far away = more bad - just ez like that.
 In my experience the primary factor causing false-positive recognitions is an excessive high led-brightness; you should limit your leds to a certain power draw (ex. 2500 mA).
@@ -149,9 +149,8 @@ Duration (in seconds), after a triggered effect/preset/playlist will return to i
 
 #### **-BSS / --board_stop_start**
 
-The app stops your board after thrown darts. 
-After wled returns to idle effect it will start the board.
 !!! Make sure your effect/preset/playlist has a configured duration (SEE -DU) !!!
+The app stops your board after thrown darts. After duration (-DU) wled returns to idle - it will start the board again: Value '0.0' means no stop-start at all; values greater 0.0 declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests 0.3 or 0.4 was an appropriate value.
 
 #### **-BSSOS / --board_stop_start_only_start**
 
