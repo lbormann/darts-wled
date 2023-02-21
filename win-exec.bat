@@ -1,16 +1,17 @@
 PUSHD .
 python "autodarts-wled.py" ^
--I "0.0.0.0" ^
--P "8081" ^
+-CON "127.0.0.1:8079" ^
 -WEPS "your-wled-url" ^
--BRI "255" ^
 -DU "0" ^
+-BSS "0.0" ^
+-BSSOS "0" ^
+-BRI "255" ^
 -HFO "51" ^
 -HF "x" ^
 -IDE "solid|lightgoldenrodyellow" ^
 -G "4" "87" "26" "29" "93" "42" "64" ^
 -M "4" "87" "26" "29" "93" "42" "64" ^
--B "solid|red1" "1|red1" ^
+-B "solid|red1" "1|red1" "ps|3|5" ^
 -S26 "84" ^
 -S45 "Phased" ^
 -S41 "Phased" ^

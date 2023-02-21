@@ -46,7 +46,7 @@ In my experience the primary factor causing false-positive recognitions is an ex
 
 Here is my currrent Hardware-Setup (You can google prices yourself):
 * Controller: 1x AZDelivery ESP32 D1 Mini
-* Led-stripe: 1x BTF-Lighting SK6812 RGBNW 60leds/m - ~ 4.4m used
+* Led-stripe: 1x BTF-Lighting SK6812 RGBNW 60leds/m - ~ 4.6m used
 * Power adapter: 1x Mean Well LPV-100-5 60W 5V DC
 * Cosmetic: 1x fowong 2m Selbstklebend Dichtungsband 12mm(B) x 12mm(D) x 4m(L) Schaumstoffband (to prevent visible leds)
 * Connector: 4x Wago 221-612 Verbindungsklemme 2 Leiter mit Betätigungshebel 0,5-6 qmm (to easily connect cables)
@@ -83,7 +83,7 @@ Go to download-directory and type:
 
 ### Prerequisite
 
-You need to have a running caller - https://github.com/lbormann/autodarts-caller - (latest version) with configured 'WTT'-Argument (http://127.0.0.1:8081)
+You need to have a running caller - https://github.com/lbormann/autodarts-caller - (latest version)
 
 ### Run by executable (Windows)
 
@@ -118,11 +118,12 @@ Reboot your system.
 
 ### Arguments
 
-- -I / --host_ip [OPTIONAL] [Default: "0.0.0.0"] 
-- -P / --host_port [OPTIONAL] [Default: "8081"] 
+- -CON / --connection [OPTIONAL] [Default: "127.0.0.1:8079"] 
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] 
+- -BSS / --board_stop_start [OPTIONAL] [Default: 0.0]
+- -BSSOS / --board_stop_start_only_start [OPTIONAL] [Default: 0]
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] 
-- -DU / --effect_duration [OPTIONAL] [Default: 0] [Possible values: 0 .. 10] 
+- -DU / --effect_duration [OPTIONAL] [Default: 0] 
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] 
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] [Possible values: See below] 
@@ -134,25 +135,31 @@ Reboot your system.
 
 
 
-#### **-I / --host_ip**
+#### **-CON / --connection**
 
-This is your network adress whereat autodarts-caller or other compatible services can send event-data to trigger your wled(s). By Default this is 0.0.0.0 (means your local ip-address / usually you do not need to change this)
+Host address to data-feeder (autodarts-caller). By Default this is 127.0.0.1:8079 (means your local ip-address / usually you do not need to change this)
     
-#### **-P / --host_port**
-
-By analogy with -I there is a port which belongs to the address. By Default this is 8081 (usually you do not need to change this)
-
 #### **-WEPS / --wled_endpoints**
 
-Url to your WLED-Website. You can define multiple urls.
+URL to your WLED-Website. You can define multiple urls.
+
+#### **-DU / --effect_duration**
+
+Duration (in seconds), after a triggered effect/preset/playlist will return to idle-effect. By default this is 0 (infinity duration = return to idle happens when you pull your darts)
+
+#### **-BSS / --board_stop_start**
+
+The app stops your board after thrown darts. 
+After wled returns to idle effect it will start the board.
+!!! Make sure your effect/preset/playlist has a configured duration (SEE -DU) !!!
+
+#### **-BSSOS / --board_stop_start_only_start**
+
+Limits BSS to only on game-/matchstart.
 
 #### **-BRI / --effect_brightness**
 
 Brightness for WLED-effects. You can choose a value between 1 and 255. By default this is 175.
-
-#### **-DU / --effect_duration**
-
-Time, in seconds, after a triggered effect/preset/playlist will return to idle-effect. By default this is 0 (infinity duration = return to idle happens when you pull your darts)
 
 #### **-HFO / --high_finish_on**
 
@@ -207,20 +214,21 @@ _ _ _ _ _ _ _ _ _ _
 
 The first argument-definition shows the event 'Busted': Busting will result in playing one of the 2 defined effects: solid (red) and solid (blue).
 
-The second argument-definition shows a defined 'Score-area': recognized scores between 0 and 15 will result in playing one of the 3 effects: blink (ID: 1), breathe or solid. For every of those effects we defined different colors, speeds and intensities; only the effect-name/effect-ID is required; everything else is an option.
+The second argument-definition shows a 'score-area': recognized scores between 0 and 15 will result in playing one of the 3 effects: blink (ID: 1), breathe or solid. For every of those effects we defined different colors, speeds and intensities; only the effect-name/effect-ID is required; everything else is an option.
 
+The third argument-definition shows a 'score-area': recognized scores between 16 and 60 result in playing preset (or playlist) 3.
 
-* To set a preset or playlists, use the displayed ID in WLED! 
+* To set a preset or playlists, use the displayed ID in WLED! Moreover you can set a custom duration (Except -IDE)
 
-    syntax: **"ps|{ID}"**
+    syntax: **"ps|{ID}|{seconds}"**
 
 * To set an effect, use an wled-effect-name or the corresponding ID (https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes):
 
-    syntax: **"{'effect-name' or 'effect-ID'}|{primary-color-name}|{secondary-color-name}|{tertiary-color-name}]"**
+    syntax: **"{'effect-name' or 'effect-ID'}|{primary-color-name}|{secondary-color-name}|{tertiary-color-name}"**
 
-* To set effect- speed, intensity, palette
+* To set effect- speed, intensity, palette, duration (Except -IDE)
 
-    syntax: **"{'effect-name' or 'effect-ID'}|s{1-255}|i{1-255}|p{palette-ID}]"**
+    syntax: **"{'effect-name' or 'effect-ID'}|s{1-255}|i{1-255}|p{palette-ID}|d{seconds}"**
 
 * For color-name usage, validate that the color-name you want is available in the list!
 
@@ -239,36 +247,42 @@ The second argument-definition shows a defined 'Score-area': recognized scores b
 
 ## Community-Effect-Profiles
 
-| Argument | Tullaris#4778 |
-| --  | -- | 
-| HF (Highfinish) | fire flicker |
-| IDE (Idle) | solid\\|lightgoldenrodyellow |
-| G (Game-won) | colorloop |
-| M (Match-won) | running\\|orange\\|red1 |
-| B (Busted) | fire 2012 |
-| S0 (score 0) | breathe\\|orange\\|red1 |
-| S3 (Score 3) | running |
-| S26 (Score 26) | dynamic |
-| S180 (Score 180) | rainbow |
-| A1 (Area 1) | 0-14 solid\\|deeppink1 |
-| A2 (Area 2) | 15-29 solid\\|blue |
-| A3 (Area 3) | 30-44 solid\\|deepskyblue1 |
-| A4 (Area 4) | 45-59 solid\\|green |
-| A5 (Area 5) | 60-74 solid\\|chartreuse1 |
-| A6 (Area 6) | 75-89 solid\\|brick |
-| A7 (Area 7) | 90-104 solid\\|tomato1 |
-| A8 (Area 8) | 105-119 solid\\|tan1 |
-| A9 (Area 9) | 120-134 solid\\|yellow1 |
-| A10 (Area 10) | 135-149 solid\\|purple1 |
-| A11 (Area 11) | 150-164 solid\\|orange |
-| A12 (Area 12) | 165-180 solid\\|red1 |
+| Argument | Tullaris#4778 | wusaaa#0578 |
+| --  | -- | -- |
+| HF (Highfinish) | fire flicker | 4 87 26 29 93 42 64 |
+| IDE (Idle) | solid\\|lightgoldenrodyellow | solid\\|lightgoldenrodyellow |
+| G (Game-won) | colorloop | 4 87 26 29 93 42 64 | 
+| M (Match-won) | running\\|orange\\|red1 | 4 87 26 29 93 42 64 |
+| B (Busted) | fire 2012 | solid\\|red1 |
+| S0 (score 0) | breathe\\|orange\\|red1 | |
+| S3 (Score 3) | running | |
+| S26 (Score 26) | dynamic | |
+| S135 (Score 135) | | 78 9 |
+| S140 (Score 140) | | 81 |
+| S144 (Score 144) | | 78 9 |
+| S153 (Score 153) | | 78 9 |
+| S162 (Score 162) | | 78 9 |
+| S171 (Score 171) | | 78 9 |
+| S180 (Score 180) | rainbow | 78 9 |
+| A1 (Area 1) | 0-14 solid\\|deeppink1 | 0-30 solid\\|orange |
+| A2 (Area 2) | 15-29 solid\\|blue | 31-60 solid\\|orange1 |
+| A3 (Area 3) | 30-44 solid\\|deepskyblue1 | 61-90 solid\\|yellow1 |
+| A4 (Area 4) | 45-59 solid\\|green | 91-120 solid\\|olivedrab4 |
+| A5 (Area 5) | 60-74 solid\\|chartreuse1 | 121-150 solid\\|olivedrab1 |
+| A6 (Area 6) | 75-89 solid\\|brick | |
+| A7 (Area 7) | 90-104 solid\\|tomato1 | |
+| A8 (Area 8) | 105-119 solid\\|tan1 | |
+| A9 (Area 9) | 120-134 solid\\|yellow1 | |
+| A10 (Area 10) | 135-149 solid\\|purple1 | |
+| A11 (Area 11) | 150-164 solid\\|orange | |
+| A12 (Area 12) | 165-180 solid\\|red1 | |
 
 
 ## !!! IMPORTANT !!!
 
 This application requires a running instance of autodarts-caller https://github.com/lbormann/autodarts-caller
-Moreover you need to configure the WTT-argument in autodarts-caller to delegate incoming game-events to this application.
-Let`s say you drive both - the caller and wled on the same machine, then you fill WTT with 'http://127.0.0.1:8081' Do not use 'localhost' as the name needs to be resolved by os that can cost addional time until the game-event reaches wled.
+Moreover you need to configure the CON-argument to subscribe to game-events.
+Let`s say you drive both - the caller and wled on the same machine, then you set CON to '127.0.0.1:8079' (DEFAULT).
 
 
 
@@ -291,6 +305,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - add game-mode variable to arguments
 - care about powerstate of WLED; cause crash on start possible now
 - effect-IDs > 117 have probs (ex 118)
+- segment support
 
 ### Done
 
@@ -309,6 +324,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - support presets + playlists
 - add wled-vars: speed, intensity, palette
 - improve Readme: explain arguments, add example for starting app
+- connect to data-feeder by websocket
 
 
 
