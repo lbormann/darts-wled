@@ -141,7 +141,7 @@ Host address to data-feeder (autodarts-caller). By Default this is 127.0.0.1:807
     
 #### **-WEPS / --wled_endpoints**
 
-URL to your WLED-Website. You can define multiple urls.
+IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'
 
 #### **-DU / --effect_duration**
 

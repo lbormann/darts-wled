@@ -23,7 +23,7 @@ BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
 
-VERSION = '1.4.0'
+VERSION = '1.4.1'
 DEBUG = False
 
 
@@ -444,7 +444,7 @@ if __name__ == "__main__":
         effect_list_url = parseUrl('http://' + args['wled_endpoints'][0] + WLED_EFFECT_LIST_PATH)
         printv("Receiving WLED-effects from " + str(effect_list_url)) 
         WLED_EFFECTS = requests.get(effect_list_url, headers={'Accept': 'application/json'})
-        WLED_EFFECTS = [we.lower() for we in WLED_EFFECTS.json()]  
+        WLED_EFFECTS = [we.lower().split('@', 1)[0] for we in WLED_EFFECTS.json()]  
         WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1)) 
         printv("Your WLED-Endpoint offers " + str(len(WLED_EFFECTS)) + " effects")
         IDLE_EFFECT = parse_effects_argument(args['idle_effect'])
