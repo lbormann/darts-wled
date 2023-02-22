@@ -26,8 +26,8 @@ o = not (yet) supported
 ## Showcase
 
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/1.jpg?raw=true">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true" width="45%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/3.jpg?raw=true" width="45%">
+<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true" width="30%">
+<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/3.jpg?raw=true" width="30%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/4.jpg?raw=true" width="45%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/5.jpg?raw=true" width="45%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/6.jpg?raw=true" width="45%">
