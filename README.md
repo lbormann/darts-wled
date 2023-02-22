@@ -96,7 +96,7 @@ Go to download-directory and type:
 
 Create a shortcut of the executable; right click on the shortcut -> select properties -> add arguments in the target input at the end of the text field.
 
-Example: C:\Downloads\autodarts-wled.exe -WEPS "your-first-wled-url" "your-second-wled-url"
+Example: C:\Downloads\autodarts-wled.exe -WEPS "your-first-wled-ip" "your-second-wled-ip"
 
 Save changes.
 Click on the shortcut to start the application.
@@ -104,7 +104,7 @@ Click on the shortcut to start the application.
 
 ### Run by source
 
-    python3 autodarts-wled.py -WEPS "your-wled-url"
+    python3 autodarts-wled.py -WEPS "your-wled-ip"
 
 
 
@@ -114,7 +114,7 @@ Click on the shortcut to start the application.
 
 At the end of the file add:
 
-    @reboot sleep 30 && cd <absolute-path-to>/autodarts-wled && python3 autodarts-wled.py -WEPS "your-wled-url"
+    @reboot sleep 30 && cd <absolute-path-to>/autodarts-wled && python3 autodarts-wled.py -WEPS "your-wled-ip"
 
 Make sure you add an empty line under the added command.
 
@@ -127,10 +127,10 @@ Reboot your system.
 
 - -CON / --connection [OPTIONAL] [Default: "127.0.0.1:8079"] 
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] 
+- -DU / --effect_duration [OPTIONAL] [Default: 0]
 - -BSS / --board_stop_start [OPTIONAL] [Default: 0.0]
 - -BSSOS / --board_stop_start_only_start [OPTIONAL] [Default: 0]
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] 
-- -DU / --effect_duration [OPTIONAL] [Default: 0] 
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] 
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] [Possible values: See below] 
@@ -144,7 +144,7 @@ Reboot your system.
 
 #### **-CON / --connection**
 
-Host address to data-feeder (autodarts-caller). By Default this is 127.0.0.1:8079 (means your local ip-address / usually you do not need to change this)
+Host address to data-feeder (autodarts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do not need to change this)
     
 #### **-WEPS / --wled_endpoints**
 
@@ -152,24 +152,24 @@ IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '
 
 #### **-DU / --effect_duration**
 
-Duration (in seconds), after a triggered effect/preset/playlist will return to idle-effect. By default this is 0 (infinity duration = return to idle happens when you pull your darts)
+Duration (in seconds), after a triggered effect/preset/playlist will return to idle-effect. By default this is '0' (infinity duration = return to idle happens when you pull your darts)
 
 #### **-BSS / --board_stop_start**
 
 !!! Make sure your effect/preset/playlist has a configured duration (SEE -DU) !!!
-The app stops your board after thrown darts. When duration (-DU) past wled returns to idle - it will start the board again: Value '0.0' means no stop-start at all; values greater 0.0 declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests 0.3 or 0.4 was an appropriate value.
+The app stops your board after thrown darts. When duration (-DU) past wled returns to idle - it will start the board again: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests '0.3' or '0.4' was an appropriate value.
 
 #### **-BSSOS / --board_stop_start_only_start**
 
-If you set this to 1 BSS will limit start-stop-mechanismn to game-/match-start. By default this is no activated (0).
+If you set this to '1' BSS will limit start-stop-mechanismn to game-/match-start. By default this is no activated ('0').
 
 #### **-BRI / --effect_brightness**
 
-Brightness for WLED-effects. You can choose a value between 1 and 255. By default this is 175.
+Brightness for WLED-effects. You can choose a value between '1' and '255'. By default this is 175.
 
 #### **-HFO / --high_finish_on**
 
-Define what a highfinish means for you. Choose a score-value between 2 and 170. This value is relevant for argument '-HF'. By default this is not set = no effects for 'Highfinishes'.
+Define what a highfinish means for you. Choose a score-value between '2' and '170'. This value is relevant for argument '-HF'. By default this is not set = no effects for 'Highfinishes'.
 
 #### **-HF / --high_finish_effects**
 
