@@ -1,0 +1,29 @@
+PUSHD .
+python "autodarts-wled.py" ^
+-CON "127.0.0.1:8079" ^
+-WEPS "192.168.3.193" "192.168.3.181" ^
+-DU "0" ^
+-BSS "0.4" ^
+-BRI "255" ^
+-HFO "51" ^
+-HF "rainbow" ^
+-IDE "solid|black" ^
+-G "colorloop" ^
+-M "running|orange|red1" ^
+-B "solid|red3" ^
+-S0 "breathe|orange|red1" ^
+-S3 "colorloop" ^
+-S26 "dynamic" ^
+-S180 "rainbow" ^
+-A1 "0-14" "ps|2" ^
+-A2 "15-29" "solid|blue" ^
+-A3 "30-44" "solid|deepskyblue1" ^
+-A4 "45-59" "solid|green" ^
+-A5 "60-74" "solid|chartreuse1" ^
+-A6 "75-89" "solid|brick" ^
+-A7 "90-104" "solid|tomato1" ^
+-A8 "105-119" "solid|tan1" ^
+-A9 "120-134" "solid|yellow1" ^
+-A10 "135-149" "solid|purple1" ^
+-A11 "150-164" "solid|orange" ^
+-A12 "165-180" "solid|red1"

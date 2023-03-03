@@ -129,7 +129,6 @@ Reboot your system.
 - -WEPS / --wled_endpoints [REQUIRED] [MULTIPLE ENTRIES POSSIBLE] 
 - -DU / --effect_duration [OPTIONAL] [Default: 0]
 - -BSS / --board_stop_start [OPTIONAL] [Default: 0.0]
-- -BSSOS / --board_stop_start_only_start [OPTIONAL] [Default: 0]
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] 
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] 
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
@@ -148,7 +147,8 @@ Host address to data-feeder (autodarts-caller). By Default this is '127.0.0.1:80
     
 #### **-WEPS / --wled_endpoints**
 
-IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'
+IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'. It is important to say that in case of multiple endpoints, the first one is treated as your primary endpoints which means
+it will be used to check if is idle state is active.
 
 #### **-DU / --effect_duration**
 
@@ -157,11 +157,7 @@ Duration (in seconds), after a triggered effect/preset/playlist will return to i
 #### **-BSS / --board_stop_start**
 
 !!! Make sure your effect/preset/playlist has a configured duration (SEE -DU) !!!
-The app stops your board after thrown darts. When duration (-DU) past wled returns to idle - it will start the board again: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests '0.3' or '0.4' was an appropriate value.
-
-#### **-BSSOS / --board_stop_start_only_start**
-
-If you set this to '1' BSS will limit start-stop-mechanismn to game-/match-start. By default this is no activated ('0').
+The app stops your board after thrown darts. When duration (-DU) past wled returns to idle - it will start the board again: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests '0.5' was an appropriate value.
 
 #### **-BRI / --effect_brightness**
 
@@ -211,6 +207,10 @@ _ _ _ _ _ _ _ _ _ _
 
 
 #### Examples: 
+
+Before you start: Keep in mind! When it comes to playlists/presets, do NOT use any time-conditions or back-to-idle-options in WLED!
+If you want your presets/playlists last a particular duration use '-DU' in combination with '-BSS'!
+
 
 | Argument | [condition] | effect 1 | effect 2 | effect 3 | effect x |
 | --  | -- | -- | --  | -- | -- | 
@@ -331,7 +331,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - add wled-vars: speed, intensity, palette
 - improve Readme: explain arguments, add example for starting app
 - connect to data-feeder by websocket
-
+- only process ws-msgs of first wled-endpoint
 
 
 ## LAST WORDS

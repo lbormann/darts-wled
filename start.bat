@@ -4,7 +4,6 @@ python "autodarts-wled.py" ^
 -WEPS "your-wled-url" ^
 -DU "0" ^
 -BSS "0.0" ^
--BSSOS "0" ^
 -BRI "255" ^
 -HFO "51" ^
 -HF "x" ^
