@@ -45,14 +45,14 @@ To find the best possible light-impression without causing problem to dart-recog
 2. Around the plasma lighting ring (outside): Not really a light-effect at all, as light has nothing to shine at.
 3. Around my surround: Works best and looks nice! But you need a bright background/wall.
 
-I`ve tested 1.) with a white surround. It looks OK, but the recognition algorithmn can NOT handle this: When a led-effect is played it does not recognize pulling.. after pressing next to end the turn, the recognition stops completely and you need to restart your board.. To avoid this you can stop the board right after darts are thrown, play an effect and start the board again right after the effect ended. (Use parameters DU and BSS to accomplish this).
+I`ve tested 1.) with a white surround. It looks OK, but the recognition algorithmn can NOT handle this: When a led-effect is played it does not recognize pulling.. after pressing next to end the turn, the recognition stops completely and you need to restart your board.. To avoid this you can stop the board right after darts are thrown, play an effect and start the board again right after the effect ended. (Use a combination of arguments 'DU' and 'BSS' to accomplish this).
 
 Moreover as a general impression: If the leds are too far away from wall the effect is not good. More far away = more bad - just ez like that.
 In my experience the primary factor causing false-positive recognitions is an excessive high led-brightness; you should limit your leds to a certain power draw (ex. 2000 mA).
 
 Here is my currrent Hardware-Setup (You can google prices yourself):
 * Controller: 1x AZDelivery ESP32 D1 Mini
-* Led-stripe: 1x BTF-Lighting SK6812 RGBNW 60leds/m - ~ 4.6m used
+* Led-stripe: 1x BTF-Lighting SK6812 RGBNW 60leds/m - ~ 4.6m used (2m for the surround)
 * Power adapter: 1x Mean Well LPV-100-5 60W 5V DC
 * Cosmetic: 1x fowong 2m Selbstklebend Dichtungsband 12mm(B) x 12mm(D) x 4m(L) Schaumstoffband (to prevent visible leds)
 * Connector: 4x Wago 221-612 Verbindungsklemme 2 Leiter mit Betätigungshebel 0,5-6 qmm (to easily connect cables)
@@ -108,7 +108,7 @@ Click on the shortcut to start the application.
 
 
 
-### Setup autoboot [linux] (optional)
+### Setup autostart [linux] (optional)
 
     crontab -e
 
@@ -132,7 +132,7 @@ Reboot your system.
 - -BRI / --effect_brightness [OPTIONAL] [Default: 175] [Possible values: 1 .. 255] 
 - -HFO / --high_finish_on [OPTIONAL] [Default: None] [Possible values: 2 .. 170] 
 - -HF / --high_finish_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-- -IDE / --idle_effect [OPTIONAL] [Default: "solid|black"] [Possible values: See below] 
+- -IDE / --idle_effect [OPTIONAL] [Default: "solid|lightgoldenrodyellow"] [Possible values: See below] 
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
@@ -143,12 +143,12 @@ Reboot your system.
 
 #### **-CON / --connection**
 
-Host address to data-feeder (autodarts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do not need to change this)
+Host address to data-feeder (autodarts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do NOT need to change this)
     
 #### **-WEPS / --wled_endpoints**
 
-IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'. It is important to say that in case of multiple endpoints, the first one is treated as your primary endpoints which means
-it will be used to check if is idle state is active.
+IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'. It is important to say that in case of multiple endpoints, the first one is treated as your primary endpoint which means
+it will be used to check if is idle state is returned. Moreover if you drive multiple WLEDS make sure you disable WLEDs Sync function.
 
 #### **-DU / --effect_duration**
 
@@ -156,8 +156,7 @@ Duration (in seconds), after a triggered effect/preset/playlist will return to i
 
 #### **-BSS / --board_stop_start**
 
-!!! Make sure your effect/preset/playlist has a configured duration (SEE -DU) !!!
-The app stops your board after thrown darts. When duration (-DU) past wled returns to idle - it will start the board again: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests '0.5' was an appropriate value.
+The app stops your board after thrown darts. When duration (-DU) pasts wled returns to idle and starts the board: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests '0.4' was an appropriate value.
 
 #### **-BRI / --effect_brightness**
 
@@ -174,8 +173,8 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 
 #### **-IDE / --idle_effect**
 
-Controls your wled(s) when dart-pulling occured (Waiting for dart-throw). You can disable leds by defining an effect 'solid|black' which is the default value.
-Define an effect/preset/playlist that gets triggered after dart-pulling. For examples see below!
+Controls your wled(s) when dart-pulling occurs or a configurated duration pasts.
+Define an effect/preset/playlist that gets triggered. For examples see below!
 
 #### **-G / --game_won_effects**
 
@@ -207,9 +206,6 @@ _ _ _ _ _ _ _ _ _ _
 
 
 #### Examples: 
-
-Before you start: Keep in mind! When it comes to playlists/presets, do NOT use any time-conditions or back-to-idle-options in WLED!
-If you want your presets/playlists last a particular duration use '-DU' in combination with '-BSS'!
 
 
 | Argument | [condition] | effect 1 | effect 2 | effect 3 | effect x |
@@ -251,7 +247,7 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
 
 
-## Community-Effect-Profiles
+## Community-Profiles
 
 | Argument | Tullaris#4778 | wusaaa#0578 |
 | --  | -- | -- |
@@ -284,12 +280,25 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 | A12 (Area 12) | 165-180 solid\\|red1 | |
 
 
+## UPDATE TO RECENT APP VERSION
+
+### Windows
+
+- Download the latest executable in the release section.
+
+
+### Linux / Others
+
+    cd autodarts-wled
+
+    git pull
+
+    pip install -r requirements.txt
+
+
 ## !!! IMPORTANT !!!
 
 This application requires a running instance of autodarts-caller https://github.com/lbormann/autodarts-caller
-Moreover you need to configure the CON-argument to subscribe to game-events.
-Let`s say you drive both - the caller and wled on the same machine, then you set CON to '127.0.0.1:8079' (DEFAULT).
-
 
 
 ## HELPERS
@@ -310,8 +319,7 @@ It may be buggy. I've just coded it for fast fun with https://autodarts.io. You 
 - turn off wled on match-finish
 - add game-mode variable to arguments
 - care about powerstate of WLED; cause crash on start possible now
-- effect-IDs > 117 have probs (ex 118)
-- segment support
+
 
 ### Done
 
