@@ -1,5 +1,4 @@
-win-exec-custom.bat
-win-start-custom.bat
+start-custom.bat
 build
 dist
 *.spec
