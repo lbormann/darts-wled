@@ -24,7 +24,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.4'
+VERSION = '1.4.5'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -352,11 +352,15 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
     global waitingForBoardStart
     global WS_DATA_FEEDER
 
+    if is_win: 
+        WS_DATA_FEEDER.send('board-reset')
+        time.sleep(0.15)
+
     if bss_requested == True and (BOARD_STOP_START != 0.0 or is_win == True):
         waitingForBoardStart = True
         WS_DATA_FEEDER.send('board-stop')
         if is_win == 1:
-            time.sleep(0.75)
+            time.sleep(0.15)
 
     (state, duration) = get_state(effect_list)
     state.update({'on': True})

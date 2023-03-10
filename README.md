@@ -284,7 +284,7 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
 ### Windows
 
-- Download the latest executable in the release section.
+Download the latest executable in the release section.
 
 
 ### Linux / Others
