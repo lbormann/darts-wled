@@ -13,8 +13,8 @@ o = not (yet) supported
 
 | Variant | Support |
 | ------------- | ------------- |
-| X01 | x |
-| Cricket | x |
+| X01 | :heavy_check_mark: |
+| Cricket | :heavy_check_mark: |
 | Bermuda | o |
 | Shanghai | o |
 | Gotcha | o |
