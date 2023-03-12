@@ -25,19 +25,9 @@ o = not (yet) supported
 
 ## Showcase
 
+[![IMAGE_ALT](https://img.youtube.com/vi/fDXomw55vhI/hqdefault.jpg)](https://youtu.be/fDXomw55vhI)
+
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/1.jpg?raw=true">
-
-<iframe
-    width="640"
-    height="480"
-    src="https://youtu.be/fDXomw55vhI"
-    frameborder="0"
-    allow="autoplay; encrypted-media"
-    allowfullscreen>
-
-</iframe>
-
-
 <p float="left">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true" width="49%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/3.jpg?raw=true" width="49%">
