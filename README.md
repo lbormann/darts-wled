@@ -25,8 +25,10 @@ o = not (yet) supported
 
 ## Showcase
 
+#### Videos (Click to play):
 [![IMAGE_ALT](https://img.youtube.com/vi/fDXomw55vhI/hqdefault.jpg)](https://youtu.be/fDXomw55vhI)
 
+#### Images:
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/1.jpg?raw=true">
 <p float="left">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true" width="49%">
