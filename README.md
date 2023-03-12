@@ -252,35 +252,37 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
 ## Community-Profiles
 
-| Argument | Tullaris#4778 | wusaaa#0578 | 
-| --  | -- | -- |
-| HF (Highfinish) | fire flicker | 4 87 26 29 93 42 64 |
-| IDE (Idle) | solid\\|lightgoldenrodyellow | solid\\|lightgoldenrodyellow |
-| G (Game-won) | colorloop | 4 87 26 29 93 42 64 | 
-| M (Match-won) | running\\|orange\\|red1 | 4 87 26 29 93 42 64 |
-| B (Busted) | fire 2012 | solid\\|red1 |
-| S0 (score 0) | breathe\\|orange\\|red1 | |
-| S3 (Score 3) | running | |
-| S26 (Score 26) | dynamic | |
-| S135 (Score 135) | | 78 9 |
-| S140 (Score 140) | | 81 |
-| S144 (Score 144) | | 78 9 |
-| S153 (Score 153) | | 78 9 |
-| S162 (Score 162) | | 78 9 |
-| S171 (Score 171) | | 78 9 |
-| S180 (Score 180) | rainbow | 78 9 |
-| A1 (Area 1) | 0-14 solid\\|deeppink1 | 0-30 solid\\|orange |
-| A2 (Area 2) | 15-29 solid\\|blue | 31-60 solid\\|orange1 |
-| A3 (Area 3) | 30-44 solid\\|deepskyblue1 | 61-90 solid\\|yellow1 |
-| A4 (Area 4) | 45-59 solid\\|green | 91-120 solid\\|olivedrab4 |
-| A5 (Area 5) | 60-74 solid\\|chartreuse1 | 121-150 solid\\|olivedrab1 |
-| A6 (Area 6) | 75-89 solid\\|brick | |
-| A7 (Area 7) | 90-104 solid\\|tomato1 | |
-| A8 (Area 8) | 105-119 solid\\|tan1 | |
-| A9 (Area 9) | 120-134 solid\\|yellow1 | |
-| A10 (Area 10) | 135-149 solid\\|purple1 | |
-| A11 (Area 11) | 150-164 solid\\|orange | |
-| A12 (Area 12) | 165-180 solid\\|red1 | |
+| Argument | Tullaris#4778 | wusaaa#0578 | Sini#8190
+| --  | -- | -- | -- |
+| HF (Highfinish) | fire flicker | 4 87 26 29 93 42 64 | ps\\|1 ps\\|2 |
+| IDE (Idle) | solid\\|lightgoldenrodyellow | solid\\|lightgoldenrodyellow | ps\\|10 |
+| G (Game-won) | colorloop | 4 87 26 29 93 42 64 | ps\\|9 ps\\|11 |
+| M (Match-won) | running\\|orange\\|red1 | 4 87 26 29 93 42 64 | ps\\|3 ps\\|4 |
+| B (Busted) | fire 2012 | solid\\|red1 | ps\\|20 ps\\|21 |
+| S0 (score 0) | breathe\\|orange\\|red1 | | ps\\|5 ps\\|6 |
+| S3 (Score 3) | running | | |
+| S26 (Score 26) | dynamic | | ps\\|7 ps\\|8 |
+| S135 (Score 135) | | 78 9 | |
+| S140 (Score 140) | | 81 | |
+| S144 (Score 144) | | 78 9 | |
+| S153 (Score 153) | | 78 9 | |
+| S162 (Score 162) | | 78 9 | |
+| S171 (Score 171) | | 78 9 | |
+| S180 (Score 180) | rainbow | 78 9 | ps\\|12 ps\\|13 |
+| A1 (Area 1) | 0-14 solid\\|deeppink1 | 0-30 solid\\|orange | 0-25 ps\\|14 ps\\|15 |
+| A2 (Area 2) | 15-29 solid\\|blue | 31-60 solid\\|orange1 | 27-59 ps\\|16 ps\\|18 |
+| A3 (Area 3) | 30-44 solid\\|deepskyblue1 | 61-90 solid\\|yellow1 | 60-99 ps\\|17 ps\\|19 |
+| A4 (Area 4) | 45-59 solid\\|green | 91-120 solid\\|olivedrab4 | 100-179 ps\\|22 ps\\|23 |
+| A5 (Area 5) | 60-74 solid\\|chartreuse1 | 121-150 solid\\|olivedrab1 | |
+| A6 (Area 6) | 75-89 solid\\|brick | | |
+| A7 (Area 7) | 90-104 solid\\|tomato1 | | |
+| A8 (Area 8) | 105-119 solid\\|tan1 | | |
+| A9 (Area 9) | 120-134 solid\\|yellow1 | | |
+| A10 (Area 10) | 135-149 solid\\|purple1 | | |
+| A11 (Area 11) | 150-164 solid\\|orange | | |
+| A12 (Area 12) | 165-180 solid\\|red1 | | |
+
+Moreover you can find ready-to-go wled-presets in the community-folder; You can restore a preset-file in wled-ui.
 
 
 ## UPDATE TO RECENT APP VERSION
