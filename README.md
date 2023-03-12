@@ -27,6 +27,17 @@ o = not (yet) supported
 
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/1.jpg?raw=true">
 
+<iframe
+    width="640"
+    height="480"
+    src="https://youtu.be/fDXomw55vhI"
+    frameborder="0"
+    allow="autoplay; encrypted-media"
+    allowfullscreen>
+
+</iframe>
+
+
 <p float="left">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true" width="49%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/3.jpg?raw=true" width="49%">
@@ -249,7 +260,7 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
 ## Community-Profiles
 
-| Argument | Tullaris#4778 | wusaaa#0578 |
+| Argument | Tullaris#4778 | wusaaa#0578 | 
 | --  | -- | -- |
 | HF (Highfinish) | fire flicker | 4 87 26 29 93 42 64 |
 | IDE (Idle) | solid\\|lightgoldenrodyellow | solid\\|lightgoldenrodyellow |
