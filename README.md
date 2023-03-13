@@ -8,20 +8,17 @@ WLED-Installation 0.14.0-b1 & 0.13.3-sound-reactive (LED-Stripe SK6812 RGBNW 60l
 
 ## COMPATIBILITY
 
-x = supported
-o = not (yet) supported
-
 | Variant | Support |
 | ------------- | ------------- |
 | X01 | :heavy_check_mark: |
 | Cricket | :heavy_check_mark: |
-| Bermuda | o |
-| Shanghai | o |
-| Gotcha | o |
-| Around the Clock | o |
-| Round the World | o |
-| Random Checkout | x |
-| Count Up | o |
+| Bermuda | |
+| Shanghai | |
+| Gotcha | |
+| Around the Clock | |
+| Round the World | |
+| Random Checkout | :heavy_check_mark: |
+| Count Up | |
 
 ## Showcase
 
@@ -39,6 +36,7 @@ o = not (yet) supported
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/7.jpg?raw=true" width="49%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/8.jpg?raw=true" width="49%">
 <img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/9.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/10.jpg?raw=true" width="49%">
 </p>
 
 ## Best working and looking LED-Location
