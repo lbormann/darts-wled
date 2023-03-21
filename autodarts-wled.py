@@ -24,7 +24,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.5'
+VERSION = '1.4.6'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
