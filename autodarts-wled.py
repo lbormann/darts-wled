@@ -24,7 +24,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.6'
+VERSION = '1.4.7'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -37,10 +37,10 @@ SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
 
 
 
-def ppi(message, info_object = None):
-    logger.info('\r\n>>> ' + str(message))
+def ppi(message, info_object = None, prefix = '\r\n'):
+    logger.info(prefix + str(message))
     if info_object != None:
-        print(str(info_object))
+        logger.info(str(info_object))
     
 def ppe(message, error_object):
     ppi(message)
@@ -431,14 +431,14 @@ if __name__ == "__main__":
     osType = platform.system()
     osName = os.name
     osRelease = platform.release()
-    print('\r\n')
-    print('##########################################')
-    print('       WELCOME TO AUTODARTS-WLED')
-    print('##########################################')
-    print('VERSION: ' + VERSION)
-    print('RUNNING OS: ' + osType + ' | ' + osName + ' | ' + osRelease)
-    print('SUPPORTED GAME-VARIANTS: ' + " ".join(str(x) for x in SUPPORTED_GAME_VARIANTS) )
-    print('\r\n')
+    ppi('\r\n', None, '')
+    ppi('##########################################', None, '')
+    ppi('       WELCOME TO AUTODARTS-WLED', None, '')
+    ppi('##########################################', None, '')
+    ppi('VERSION: ' + VERSION, None, '')
+    ppi('RUNNING OS: ' + osType + ' | ' + osName + ' | ' + osRelease, None, '')
+    ppi('SUPPORTED GAME-VARIANTS: ' + " ".join(str(x) for x in SUPPORTED_GAME_VARIANTS), None, '')
+    ppi('\r\n', None, '')
 
     DEBUG = args['debug']
     CON = args['connection']
