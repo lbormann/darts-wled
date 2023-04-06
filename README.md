@@ -1,4 +1,5 @@
 # AUTODARTS-WLED
+[![Downloads](https://img.shields.io/github/downloads/lbormann/autodarts-wled/total.svg)](https://github.com/lbormann/autodarts-wled/releases/latest)
 
 Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/autodarts-caller is needed that sends the thrown points from https://autodarts.io to this application.
 
