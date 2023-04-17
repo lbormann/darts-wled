@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 import requests
 import websocket
 import threading
-import json
 import logging
 from color_constants import colors as WLED_COLORS
 import time

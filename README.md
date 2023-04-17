@@ -1,6 +1,6 @@
 # AUTODARTS-WLED
 
-Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/autodarts-caller is needed that sends the thrown points from https://autodarts.io to this application.
+Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/autodarts-caller is needed that sends thrown points from https://autodarts.io to this application.
 
 Tested on Windows 10 & 11 Pro x64, Python 3.9.7, 
 WLED-Installation 0.14.0-b1 & 0.13.3-sound-reactive (LED-Stripe SK6812 RGBNW 60leds/m - 4,6 meters powered by a 60W power adapter running on an ESP32 D1 Mini)
@@ -63,17 +63,19 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 
 ## INSTALL INSTRUCTION
 
-### Desktop-OS (cross-platform | Windows - Linux - MacOS)
+### Desktop-OS: Windows - Linux - MacOS
 
-- If you're running a desktop-driven OS (GUI) it's recommended to use autodarts-desktop: https://github.com/lbormann/autodarts-desktop
-
-
-### Windows
-
-- Download the executable in the release section.
+- If you're running a desktop-driven OS it's recommended to use [autodarts-desktop](https://github.com/lbormann/autodarts-desktop) as it takes care of starting, updating, configurating and managing multiple apps.
 
 
-### Linux / Others
+### Headless-OS:
+
+- Download the appropriate executable in the release section.
+
+
+### By Source: Windows - Linux - MacOS
+
+
 
 #### Setup python3
 
@@ -98,7 +100,9 @@ Go to download-directory and type:
 * You need to have a running caller - https://github.com/lbormann/autodarts-caller - (latest version)
 * You need to have a running WLED-Installation (0.11.0 at minimum required)
 
-### Run by executable (Windows)
+### Run by executable
+
+#### Example: Windows 
 
 Create a shortcut of the executable; right click on the shortcut -> select properties -> add arguments in the target input at the end of the text field.
 
@@ -110,23 +114,10 @@ Click on the shortcut to start the application.
 
 ### Run by source
 
+#### Example: Linux
+
     python3 autodarts-wled.py -WEPS "your-wled-ip"
 
-
-
-### Setup autostart [linux] (optional)
-
-    crontab -e
-
-At the end of the file add:
-
-    @reboot sleep 30 && cd <absolute-path-to>/autodarts-wled && python3 autodarts-wled.py -WEPS "your-wled-ip"
-
-Make sure you add an empty line under the added command.
-
-Save and close the file. 
-
-Reboot your system.
 
 
 ### Arguments
@@ -214,7 +205,7 @@ _ _ _ _ _ _ _ _ _ _
 #### Examples: 
 
 
-| Argument | [condition] | effect 1 | effect 2 | effect 3 | effect x |
+| Argument | [condition] | effect 1 | effect 2 | effect 3 | ... |
 | --  | -- | -- | --  | -- | -- | 
 |-B |  | solid\\|red1 | solid\\|blue2 | | | |
 |-A1 | 0-15 | 1\\|s255\\|i255\\|green1\\|red2 | solid\\|red1 | breathe\\|yellow1\\|blue2\\|s170\\|i40 | | |
@@ -246,9 +237,9 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
     syntax: **"x"**
 
-* If you have problems do not hesitate to have a look at example file!
+* If don't understand have a look at the example file!
 
-    learn at: **win-exec.bat**
+    learn at: **start.bat**
 
 
 
@@ -288,20 +279,6 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 Moreover you can find ready-to-go wled-presets in the community-folder; You can restore a preset-file in wled-ui.
 
 
-## UPDATE TO RECENT APP VERSION
-
-### Windows
-
-Download the latest executable in the release section.
-
-
-### Linux / Others
-
-    cd autodarts-wled
-
-    git pull
-
-    pip install -r requirements.txt
 
 
 ## !!! IMPORTANT !!!

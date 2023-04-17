@@ -12,6 +12,7 @@ python "autodarts-wled.py" ^
 -M "running|orange|red1" ^
 -B "solid|red3" ^
 -S0 "breathe|orange|red1" ^
+-S1 "breathe|s255|i255|green1|red2" ^
 -S3 "colorloop" ^
 -S26 "dynamic" ^
 -S180 "rainbow" ^
