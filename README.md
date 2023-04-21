@@ -3,9 +3,6 @@
 
 Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/autodarts-caller is needed that sends thrown points from https://autodarts.io to this application.
 
-Tested on Windows 10 & 11 Pro x64, Python 3.9.7, 
-WLED-Installation 0.14.0-b1 & 0.13.3-sound-reactive (LED-Stripe SK6812 RGBNW 60leds/m - 4,6 meters powered by a 60W power adapter running on an ESP32 D1 Mini)
-
 
 ## COMPATIBILITY
 
@@ -64,7 +61,7 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 
 ## INSTALL INSTRUCTION
 
-### Desktop-OS: Windows - Linux - MacOS
+### Desktop-OS: 
 
 - If you're running a desktop-driven OS it's recommended to use [autodarts-desktop](https://github.com/lbormann/autodarts-desktop) as it takes care of starting, updating, configurating and managing multiple apps.
 
@@ -74,9 +71,7 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 - Download the appropriate executable in the release section.
 
 
-### By Source: Windows - Linux - MacOS
-
-
+### By Source: 
 
 #### Setup python3
 
