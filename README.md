@@ -228,7 +228,7 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
 * For color-name usage, validate that the color-name you want is available in the list!
 
-    validate at: **https://www.webucator.com/article/python-color-constants-module/**
+    validate here: **https://github.com/lbormann/autodarts-wled/blob/master/colors.txt**
 
 * To set an random effect, use 'x' or 'X' as effect-id
 
