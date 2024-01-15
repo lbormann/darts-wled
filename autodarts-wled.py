@@ -23,7 +23,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.7'
+VERSION = '1.4.8'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -437,6 +437,7 @@ if __name__ == "__main__":
     ppi('VERSION: ' + VERSION, None, '')
     ppi('RUNNING OS: ' + osType + ' | ' + osName + ' | ' + osRelease, None, '')
     ppi('SUPPORTED GAME-VARIANTS: ' + " ".join(str(x) for x in SUPPORTED_GAME_VARIANTS), None, '')
+    ppi('DONATION: bitcoin:bc1q8dcva098rrrq2uqhv38rj5hayzrqywhudvrmxa', None, '')
     ppi('\r\n', None, '')
 
     DEBUG = args['debug']
