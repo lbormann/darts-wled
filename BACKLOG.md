@@ -3,3 +3,4 @@
 - turn off wled on match-finish
 - add game-mode variable to arguments
 - care about powerstate of WLED; (prevent initial crash on start)
+- add license
