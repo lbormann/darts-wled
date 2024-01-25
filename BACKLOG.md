@@ -1,0 +1,5 @@
+- fail to receive effect-list when WEPS is given with ending '/'
+- receive effect-list from all configured endpoints
+- turn off wled on match-finish
+- add game-mode variable to arguments
+- care about powerstate of WLED; (prevent initial crash on start)
