@@ -277,15 +277,9 @@ Moreover you can find ready-to-go wled-presets in the community-folder; You can 
 
 
 
-
 ## !!! IMPORTANT !!!
 
 This application requires a running instance of autodarts-caller https://github.com/lbormann/autodarts-caller
-
-
-## BUGS
-
-It may be buggy. I've just coded it for fast fun with https://autodarts.io. You can give me feedback in Discord > wusaaa
 
 
 ## LAST WORDS
