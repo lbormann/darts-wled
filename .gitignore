@@ -3,3 +3,4 @@ build
 dist
 *.spec
 fav-effects.txt
+__pycache__
