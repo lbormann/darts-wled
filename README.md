@@ -130,6 +130,8 @@ Click on the shortcut to start the application.
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+- -PJ / --player_joined_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+- -PL / --player_left_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 
@@ -183,6 +185,16 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 *`-B / --busted_effects`*
 
 Controls your wled(s) when a bust occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+*`-PJ / --player_joined_effects`*
+
+Controls your wled(s) when a player-join occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+*`-PL / --player_left_effects`*
+
+Controls your wled(s) when a player-left occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
 *`-S{0-180} / --score_{0-180}_effects`*

@@ -159,6 +159,12 @@ def parse_score_area_effects_argument(score_area_effects_arguments):
     else:
         raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
 
+def process_lobby(msg):
+    if msg['action'] == 'player-joined' and PLAYER_JOINED_EFFECTS != None:
+        control_wled(PLAYER_JOINED_EFFECTS, 'Player joined!')    
+    
+    elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS != None:
+        control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
 
 def process_variant_x01(msg):
     if msg['event'] == 'darts-thrown':
@@ -205,8 +211,7 @@ def process_variant_x01(msg):
     elif msg['event'] == 'game-started':
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
-
-
+    
 def connect_data_feeder():
     def process(*args):
         global WS_DATA_FEEDER
@@ -232,12 +237,14 @@ def on_message_data_feeder(ws, message):
             # ppi(message)
             msg = ast.literal_eval(message)
 
-            if('game' in msg):
+            if('custom' in msg and msg['custom'] == 'True' and 'game' in msg):
                 mode = msg['game']['mode']
                 if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
                     process_variant_x01(msg)
                 # elif mode == 'Cricket':
                 #     process_match_cricket(msg)
+            elif('custom' in msg and msg['custom'] == 'True' and msg['event'] == 'lobby'):
+                process_lobby(msg)
 
         except Exception as e:
             ppe('WS-Message failed: ', e)
@@ -397,6 +404,8 @@ if __name__ == "__main__":
     ap.add_argument("-G", "--game_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when game won occurs")
     ap.add_argument("-M", "--match_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when match won occurs")
     ap.add_argument("-B", "--busted_effects", default=None, required=False, nargs='*', help="WLED effect-definition when bust occurs")
+    ap.add_argument("-PJ", "--player_joined_effects", default=None, required=False, nargs='*', help="WLED effect-definition when player-join occurs")
+    ap.add_argument("-PL", "--player_left_effects", default=None, required=False, nargs='*', help="WLED effect-definition when player-left occurs")
     for v in range(0, 181):
         val = str(v)
         ap.add_argument("-S" + val, "--score_" + val + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition for score " + val)
@@ -467,7 +476,9 @@ if __name__ == "__main__":
     MATCH_WON_EFFECTS = parse_effects_argument(args['match_won_effects'])
     BUSTED_EFFECTS = parse_effects_argument(args['busted_effects'])
     HIGH_FINISH_EFFECTS = parse_effects_argument(args['high_finish_effects'])
-    
+    PLAYER_JOINED_EFFECTS = parse_effects_argument(args['player_joined_effects'])
+    PLAYER_LEFT_EFFECTS = parse_effects_argument(args['player_left_effects'])
+
     SCORE_EFFECTS = dict()
     for v in range(0, 181):
         parsed_score = parse_effects_argument(args["score_" + str(v) + "_effects"])

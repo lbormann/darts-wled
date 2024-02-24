@@ -11,6 +11,8 @@ python "autodarts-wled.py" ^
 -G "4" "87" "26" "29" "93" "42" "64" ^
 -M "4" "87" "26" "29" "93" "42" "64" ^
 -B "solid|red1" "1|red1" "ps|3|5" ^
+-PJ "solid|green1" ^
+-PL "solid|red1" ^
 -S26 "84" ^
 -S45 "Phased" ^
 -S41 "Phased" ^

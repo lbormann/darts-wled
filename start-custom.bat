@@ -1,9 +1,9 @@
 PUSHD .
 python "autodarts-wled.py" ^
 -CON "127.0.0.1:8079" ^
--WEPS "192.168.3.193" "192.168.3.181" ^
+-WEPS "192.168.3.75" ^
 -DU "0" ^
--BSS "0.0" ^
+-BSS "0.4" ^
 -BRI "255" ^
 -HFO "51" ^
 -HF "rainbow" ^
@@ -11,6 +11,8 @@ python "autodarts-wled.py" ^
 -G "colorloop" ^
 -M "running|orange|red1" ^
 -B "solid|red3" ^
+-PJ "solid|green1" ^
+-PL "solid|red1" ^
 -S0 "breathe|orange|red1" ^
 -S1 "breathe|s255|i255|green1|red2" ^
 -S3 "colorloop" ^
@@ -28,4 +30,4 @@ python "autodarts-wled.py" ^
 -A10 "135-149" "solid|purple1" ^
 -A11 "150-164" "solid|orange" ^
 -A12 "165-180" "solid|red1" ^
--DEB "0"
+-DEB "1"

@@ -1,3 +1,8 @@
+## 1.4.11
+
+- add lobby-events (-PJ / --player_joined_effects & -PJ / --player_left_effects)
+
+
 ## 1.4.10
 
 - add CHANGELOG
