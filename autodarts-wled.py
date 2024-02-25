@@ -23,7 +23,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.11'
+VERSION = '1.4.12'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -237,13 +237,13 @@ def on_message_data_feeder(ws, message):
             # ppi(message)
             msg = ast.literal_eval(message)
 
-            if('custom' in msg and msg['custom'] == 'True' and 'game' in msg):
+            if('game' in msg and 'mode' in msg['game']):
                 mode = msg['game']['mode']
                 if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
                     process_variant_x01(msg)
                 # elif mode == 'Cricket':
                 #     process_match_cricket(msg)
-            elif('custom' in msg and msg['custom'] == 'True' and msg['event'] == 'lobby'):
+            elif(msg['event'] == 'lobby'):
                 process_lobby(msg)
 
         except Exception as e:

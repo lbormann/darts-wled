@@ -1,3 +1,8 @@
+## 1.4.12
+
+- hotfix messages
+
+
 ## 1.4.11
 
 - add lobby-events (-PJ / --player_joined_effects & -PJ / --player_left_effects)
