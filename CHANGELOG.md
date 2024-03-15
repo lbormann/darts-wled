@@ -1,3 +1,8 @@
+## 1.4.13
+
+- add wss support
+
+
 ## 1.4.12
 
 - hotfix messages

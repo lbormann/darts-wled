@@ -6,6 +6,7 @@ import argparse
 from urllib.parse import urlparse
 import requests
 import websocket
+import ssl
 import threading
 import logging
 from color_constants import colors as WLED_COLORS
@@ -23,7 +24,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.12'
+VERSION = '1.4.13'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -38,7 +39,7 @@ SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
-    if info_object != None:
+    if info_object is not None:
         logger.info(str(info_object))
     
 def ppe(message, error_object):
@@ -46,224 +47,7 @@ def ppe(message, error_object):
     if DEBUG:
         logger.exception("\r\n" + str(error_object))
 
-    
-def broadcast(data):
-    global WS_WLEDS
 
-    for wled_ep in WS_WLEDS:
-        try:
-            # ppi("Broadcasting to " + str(wled_ep))
-            threading.Thread(target=broadcast_intern, args=(wled_ep, data)).start()
-        except:  
-            continue
-
-def broadcast_intern(endpoint, data):
-    try:
-        endpoint.send(json.dumps(data))
-    except:  
-        return
-
-
-def get_state(effect_list):
-    if effect_list == ["x"] or effect_list == ["X"]:
-        # TODO: add more rnd parameter
-        return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
-    else:
-        return random.choice(effect_list)
-
-def parse_effects_argument(effects_argument, custom_duration_possible = True):
-    if effects_argument == None or effects_argument == ["x"] or effects_argument == ["X"]:
-        return effects_argument
-
-    parsed_list = list()
-    for effect in effects_argument:
-        try:
-            effect_params = effect.split(EFFECT_PARAMETER_SEPARATOR)
-            effect_declaration = effect_params[0].strip().lower()
-            
-            custom_duration = None
-
-            # preset/ playlist
-            if effect_declaration == 'ps':
-                state = {effect_declaration : effect_params[1] }
-                if custom_duration_possible == True and len(effect_params) >= 3 and effect_params[2].isdigit() == True:
-                    custom_duration = int(effect_params[2])
-                parsed_list.append((state, custom_duration))
-                continue
-            
-            # effect by ID
-            elif effect_declaration.isdigit() == True:
-                effect_id = effect_declaration
-
-            # effect by name
-            else:
-                effect_id = str(WLED_EFFECTS.index(effect_declaration))
-            
-   
-
-            # everying else .. can have different positions
-
-            # p30
-            # ie: "61-120" "29|blueviolet|s255|i255|red1|green1"
-
-            seg = {"fx": effect_id}
- 
-            colours = list()
-            for ep in effect_params[1:]:
-
-                param_key = ep[0].strip().lower()
-                param_value = ep[1:].strip().lower()
-
-                # s = speed (sx)
-                if param_key == 's' and param_value.isdigit() == True:
-                    seg["sx"] = param_value
-
-                # i = intensity (ix)
-                elif param_key == 'i' and param_value.isdigit() == True:
-                    seg["ix"] = param_value
-
-                # p = palette (pal)
-                elif param_key == 'p' and param_value.isdigit() == True:
-                    seg["pal"] = param_value
-
-                # du (custom duration)
-                elif custom_duration_possible == True and param_key == 'd' and param_value.isdigit() == True:
-                    custom_duration = int(param_value)
-
-                # colors 1 - 3 (primary, secondary, tertiary)
-                else:
-                    color = WLED_COLORS[param_key + param_value]
-                    color = list(color)
-                    color.append(0)
-                    colours.append(color)
-
-
-            if len(colours) > 0:
-                seg["col"] = colours
-
-            parsed_list.append(({"seg": seg}, custom_duration))
-
-        except Exception as e:
-            ppe("Failed to parse event-configuration: ", e)
-            continue
-
-    return parsed_list   
-
-def parse_score_area_effects_argument(score_area_effects_arguments):
-    if score_area_effects_arguments == None:
-        return score_area_effects_arguments
-
-    area = score_area_effects_arguments[0].strip().split('-')
-    if len(area) == 2 and area[0].isdigit() and area[1].isdigit():
-        return ((int(area[0]), int(area[1])), parse_effects_argument(score_area_effects_arguments[1:]))
-    else:
-        raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
-
-def process_lobby(msg):
-    if msg['action'] == 'player-joined' and PLAYER_JOINED_EFFECTS != None:
-        control_wled(PLAYER_JOINED_EFFECTS, 'Player joined!')    
-    
-    elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS != None:
-        control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
-
-def process_variant_x01(msg):
-    if msg['event'] == 'darts-thrown':
-        val = str(msg['game']['dartValue'])
-        if SCORE_EFFECTS[val] != None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
-        else:
-            area_found = False
-            ival = int(val)
-            for SAE in SCORE_AREA_EFFECTS:
-                if SCORE_AREA_EFFECTS[SAE] != None:
-                    ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
-                    
-                    if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
-                        area_found = True
-                        break
-            if area_found == False:
-                ppi('Darts-thrown: ' + val + ' - NOT configured!')
-
-    elif msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
-
-    elif msg['event'] == 'busted' and BUSTED_EFFECTS != None:
-        control_wled(BUSTED_EFFECTS, 'Busted!')
-
-    elif msg['event'] == 'game-won' and GAME_WON_EFFECTS != None:
-        if HIGH_FINISH_ON != None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
-            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True)
-        else:
-            control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
-
-    elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS != None:
-        if HIGH_FINISH_ON != None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS != None:
-            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True)
-        else:
-            control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
-
-    elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
-
-    elif msg['event'] == 'game-started':
-        if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
-    
-def connect_data_feeder():
-    def process(*args):
-        global WS_DATA_FEEDER
-        websocket.enableTrace(False)
-        data_feeder_host = CON
-        if CON.startswith('ws://') == False:
-            data_feeder_host = 'ws://' + CON
-        WS_DATA_FEEDER = websocket.WebSocketApp(data_feeder_host,
-                                on_open = on_open_data_feeder,
-                                on_message = on_message_data_feeder,
-                                on_error = on_error_data_feeder,
-                                on_close = on_close_data_feeder)
-
-        WS_DATA_FEEDER.run_forever()
-    threading.Thread(target=process).start()
-
-def on_open_data_feeder(ws):
-    ppi('CONNECTED TO DATA-FEEDER ' + str(ws.url))
-    
-def on_message_data_feeder(ws, message):
-    def process(*args):
-        try:
-            # ppi(message)
-            msg = ast.literal_eval(message)
-
-            if('game' in msg and 'mode' in msg['game']):
-                mode = msg['game']['mode']
-                if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
-                    process_variant_x01(msg)
-                # elif mode == 'Cricket':
-                #     process_match_cricket(msg)
-            elif(msg['event'] == 'lobby'):
-                process_lobby(msg)
-
-        except Exception as e:
-            ppe('WS-Message failed: ', e)
-
-    threading.Thread(target=process).start()
-
-def on_close_data_feeder(ws, close_status_code, close_msg):
-    try:
-        ppi("Websocket [" + str(ws.url) + "] closed! " + str(close_msg) + " - " + str(close_status_code))
-        ppi("Retry : %s" % time.ctime())
-        time.sleep(3)
-        connect_data_feeder()
-    except Exception as e:
-        ppe('WS-Close failed: ', e)
-    
-def on_error_data_feeder(ws, error):
-    ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
-
-    
 
 def connect_wled(we):
     def process(*args):
@@ -378,7 +162,7 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
         waitingForIdle = True
         
         wait = EFFECT_DURATION
-        if duration != None:
+        if duration is not None:
             wait = duration
 
         if(wait > 0):
@@ -386,6 +170,243 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
             (state, duration) = get_state(IDLE_EFFECT)
             state.update({'on': True})
             broadcast(state)
+
+def broadcast(data):
+    global WS_WLEDS
+
+    for wled_ep in WS_WLEDS:
+        try:
+            # ppi("Broadcasting to " + str(wled_ep))
+            threading.Thread(target=broadcast_intern, args=(wled_ep, data)).start()
+        except:  
+            continue
+
+def broadcast_intern(endpoint, data):
+    try:
+        endpoint.send(json.dumps(data))
+    except:  
+        return
+
+
+
+def get_state(effect_list):
+    if effect_list == ["x"] or effect_list == ["X"]:
+        # TODO: add more rnd parameter
+        return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
+    else:
+        return random.choice(effect_list)
+
+def parse_effects_argument(effects_argument, custom_duration_possible = True):
+    if effects_argument == None or effects_argument == ["x"] or effects_argument == ["X"]:
+        return effects_argument
+
+    parsed_list = list()
+    for effect in effects_argument:
+        try:
+            effect_params = effect.split(EFFECT_PARAMETER_SEPARATOR)
+            effect_declaration = effect_params[0].strip().lower()
+            
+            custom_duration = None
+
+            # preset/ playlist
+            if effect_declaration == 'ps':
+                state = {effect_declaration : effect_params[1] }
+                if custom_duration_possible == True and len(effect_params) >= 3 and effect_params[2].isdigit() == True:
+                    custom_duration = int(effect_params[2])
+                parsed_list.append((state, custom_duration))
+                continue
+            
+            # effect by ID
+            elif effect_declaration.isdigit() == True:
+                effect_id = effect_declaration
+
+            # effect by name
+            else:
+                effect_id = str(WLED_EFFECTS.index(effect_declaration))
+            
+   
+
+            # everying else .. can have different positions
+
+            # p30
+            # ie: "61-120" "29|blueviolet|s255|i255|red1|green1"
+
+            seg = {"fx": effect_id}
+ 
+            colours = list()
+            for ep in effect_params[1:]:
+
+                param_key = ep[0].strip().lower()
+                param_value = ep[1:].strip().lower()
+
+                # s = speed (sx)
+                if param_key == 's' and param_value.isdigit() == True:
+                    seg["sx"] = param_value
+
+                # i = intensity (ix)
+                elif param_key == 'i' and param_value.isdigit() == True:
+                    seg["ix"] = param_value
+
+                # p = palette (pal)
+                elif param_key == 'p' and param_value.isdigit() == True:
+                    seg["pal"] = param_value
+
+                # du (custom duration)
+                elif custom_duration_possible == True and param_key == 'd' and param_value.isdigit() == True:
+                    custom_duration = int(param_value)
+
+                # colors 1 - 3 (primary, secondary, tertiary)
+                else:
+                    color = WLED_COLORS[param_key + param_value]
+                    color = list(color)
+                    color.append(0)
+                    colours.append(color)
+
+
+            if len(colours) > 0:
+                seg["col"] = colours
+
+            parsed_list.append(({"seg": seg}, custom_duration))
+
+        except Exception as e:
+            ppe("Failed to parse event-configuration: ", e)
+            continue
+
+    return parsed_list   
+
+def parse_score_area_effects_argument(score_area_effects_arguments):
+    if score_area_effects_arguments == None:
+        return score_area_effects_arguments
+
+    area = score_area_effects_arguments[0].strip().split('-')
+    if len(area) == 2 and area[0].isdigit() and area[1].isdigit():
+        return ((int(area[0]), int(area[1])), parse_effects_argument(score_area_effects_arguments[1:]))
+    else:
+        raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
+
+
+
+def process_lobby(msg):
+    if msg['action'] == 'player-joined' and PLAYER_JOINED_EFFECTS is not None:
+        control_wled(PLAYER_JOINED_EFFECTS, 'Player joined!')    
+    
+    elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS is not None:
+        control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
+
+def process_variant_x01(msg):
+    if msg['event'] == 'darts-thrown':
+        val = str(msg['game']['dartValue'])
+        if SCORE_EFFECTS[val] is not None:
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+        else:
+            area_found = False
+            ival = int(val)
+            for SAE in SCORE_AREA_EFFECTS:
+                if SCORE_AREA_EFFECTS[SAE] is not None:
+                    ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
+                    
+                    if ival >= area_from and ival <= area_to:
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
+                        area_found = True
+                        break
+            if area_found == False:
+                ppi('Darts-thrown: ' + val + ' - NOT configured!')
+
+    elif msg['event'] == 'darts-pulled':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+
+    elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
+        control_wled(BUSTED_EFFECTS, 'Busted!')
+
+    elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
+        if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
+            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True)
+        else:
+            control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+
+    elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
+        if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
+            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True)
+        else:
+            control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+
+    elif msg['event'] == 'match-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+
+    elif msg['event'] == 'game-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+    
+
+    
+def build_data_feeder_url():
+    server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
+    server_url = 'wss://' + server_host
+    try:
+        ws = websocket.create_connection(server_url, sslopt={"cert_reqs": ssl.CERT_NONE})
+        ws.close()
+    except Exception as e_ws:
+        try:
+            server_url = 'ws://' + server_host
+            ws = websocket.create_connection(server_url)
+            ws.close()
+        except:
+            pass
+    return server_url
+
+def connect_data_feeder():
+    def process(*args):
+        global WS_DATA_FEEDER
+        websocket.enableTrace(False)
+
+        WS_DATA_FEEDER = websocket.WebSocketApp(build_data_feeder_url(),
+                                on_open = on_open_data_feeder,
+                                on_message = on_message_data_feeder,
+                                on_error = on_error_data_feeder,
+                                on_close = on_close_data_feeder)
+        WS_DATA_FEEDER.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+
+    threading.Thread(target=process).start()
+
+def on_open_data_feeder(ws):
+    ppi('CONNECTED TO DATA-FEEDER ' + str(ws.url))
+    
+def on_message_data_feeder(ws, message):
+    def process(*args):
+        try:
+            # ppi(message)
+            msg = ast.literal_eval(message)
+
+            if('game' in msg and 'mode' in msg['game']):
+                mode = msg['game']['mode']
+                if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
+                    process_variant_x01(msg)
+                # elif mode == 'Cricket':
+                #     process_match_cricket(msg)
+            elif(msg['event'] == 'lobby'):
+                process_lobby(msg)
+
+        except Exception as e:
+            ppe('WS-Message failed: ', e)
+
+    threading.Thread(target=process).start()
+
+def on_close_data_feeder(ws, close_status_code, close_msg):
+    try:
+        ppi("Websocket [" + str(ws.url) + "] closed! " + str(close_msg) + " - " + str(close_status_code))
+        ppi("Retry : %s" % time.ctime())
+        time.sleep(3)
+        connect_data_feeder()
+    except Exception as e:
+        ppe('WS-Close failed: ', e)
+    
+def on_error_data_feeder(ws, error):
+    ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
+
+    
+
 
 
 
