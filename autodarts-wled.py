@@ -24,7 +24,7 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.13'
+VERSION = '1.4.14'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -377,7 +377,8 @@ def on_message_data_feeder(ws, message):
     def process(*args):
         try:
             # ppi(message)
-            msg = ast.literal_eval(message)
+            # msg = ast.literal_eval(message)
+            msg = json.loads(message)
 
             if('game' in msg and 'mode' in msg['game']):
                 mode = msg['game']['mode']
@@ -385,7 +386,7 @@ def on_message_data_feeder(ws, message):
                     process_variant_x01(msg)
                 # elif mode == 'Cricket':
                 #     process_match_cricket(msg)
-            elif(msg['event'] == 'lobby'):
+            elif('event' in msg and msg['event'] == 'lobby'):
                 process_lobby(msg)
 
         except Exception as e:

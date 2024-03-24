@@ -1,3 +1,8 @@
+## 1.4.14
+
+- fix ws bug
+
+
 ## 1.4.13
 
 - add wss support
