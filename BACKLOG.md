@@ -1,10 +1,10 @@
+- turn on wled(s) on app start, turn off on match-end
 - process single darts
-- process lobby-events
+- setup multi-configuration
 - process bull-events
+- various IDE configuration for players
 - fail to receive effect-list when WEPS is given with ending '/'
-- receive effect-list from all configured endpoints
-- turn off wled on match-finish
 - add game-mode variable to arguments
 - care about powerstate of WLED; (prevent initial crash on start)
 - add license
-- add ATC support
+- add support for more game-variations

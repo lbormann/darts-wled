@@ -3,15 +3,14 @@ import json
 import platform
 import random
 import argparse
-from urllib.parse import urlparse
-import requests
-import websocket
-import ssl
 import threading
 import logging
 from color_constants import colors as WLED_COLORS
 import time
-import ast
+import requests
+import socketio
+import websocket
+
 
 sh = logging.StreamHandler()
 sh.setLevel(logging.INFO)
@@ -24,7 +23,12 @@ logger.addHandler(sh)
 
 
 
-VERSION = '1.4.14'
+http_session = requests.Session()
+http_session.verify = False
+sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
+
+
+VERSION = '1.4.15'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -57,10 +61,10 @@ def connect_wled(we):
         if we.startswith('ws://') == False:
             wled_host = 'ws://' + we + '/ws'
         ws = websocket.WebSocketApp(wled_host,
-                                on_open = on_open_wled,
-                                on_message = on_message_wled,
-                                on_error = on_error_wled,
-                                on_close = on_close_wled)
+                                    on_open = on_open_wled,
+                                    on_message = on_message_wled,
+                                    on_error = on_error_wled,
+                                    on_close = on_close_wled)
         WS_WLEDS.append(ws)
 
         ws.run_forever()
@@ -75,7 +79,6 @@ def on_message_wled(ws, message):
             global lastMessage
             global waitingForIdle
             global waitingForBoardStart
-            global WS_DATA_FEEDER
 
             m = json.loads(message)
 
@@ -118,7 +121,8 @@ def on_message_wled(ws, message):
                         waitingForIdle = False
                         if waitingForBoardStart == True:
                             waitingForBoardStart = False
-                            WS_DATA_FEEDER.send('board-start:' + str(BOARD_STOP_START))
+                            sio.emit('message', 'board-start:' + str(BOARD_STOP_START))
+
 
         except Exception as e:
             ppe('WS-Message failed: ', e)
@@ -140,15 +144,14 @@ def on_error_wled(ws, error):
 def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
     global waitingForIdle
     global waitingForBoardStart
-    global WS_DATA_FEEDER
 
     if is_win: 
-        WS_DATA_FEEDER.send('board-reset')
+        sio.emit('message', 'board-reset')
         time.sleep(0.15)
 
     if bss_requested == True and (BOARD_STOP_START != 0.0 or is_win == True):
         waitingForBoardStart = True
-        WS_DATA_FEEDER.send('board-stop')
+        sio.emit('message', 'board-stop')
         if is_win == 1:
             time.sleep(0.15)
 
@@ -340,73 +343,50 @@ def process_variant_x01(msg):
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
     
 
-    
-def build_data_feeder_url():
-    server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
-    server_url = 'wss://' + server_host
+
+@sio.event
+def connect():
+    ppi('CONNECTED TO DATA-FEEDER ' + sio.connection_url)
+
+@sio.event
+def connect_error(data):
+    if DEBUG:
+        ppe("CONNECTION TO DATA-FEEDER FAILED! " + sio.connection_url, data)
+
+@sio.event
+def message(msg):
     try:
-        ws = websocket.create_connection(server_url, sslopt={"cert_reqs": ssl.CERT_NONE})
-        ws.close()
-    except Exception as e_ws:
-        try:
-            server_url = 'ws://' + server_host
-            ws = websocket.create_connection(server_url)
-            ws.close()
-        except:
-            pass
-    return server_url
+        # ppi(message)
+        if('game' in msg and 'mode' in msg['game']):
+            mode = msg['game']['mode']
+            if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
+                process_variant_x01(msg)
+            # elif mode == 'Cricket':
+            #     process_match_cricket(msg)
+        elif('event' in msg and msg['event'] == 'lobby'):
+            process_lobby(msg)
+
+    except Exception as e:
+        ppe('DATA-FEEDER Message failed: ', e)
+
+@sio.event
+def disconnect():
+    ppi('DISCONNECTED FROM DATA-FEEDER ' + sio.connection_url)
+
+
 
 def connect_data_feeder():
-    def process(*args):
-        global WS_DATA_FEEDER
-        websocket.enableTrace(False)
-
-        WS_DATA_FEEDER = websocket.WebSocketApp(build_data_feeder_url(),
-                                on_open = on_open_data_feeder,
-                                on_message = on_message_data_feeder,
-                                on_error = on_error_data_feeder,
-                                on_close = on_close_data_feeder)
-        WS_DATA_FEEDER.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
-
-    threading.Thread(target=process).start()
-
-def on_open_data_feeder(ws):
-    ppi('CONNECTED TO DATA-FEEDER ' + str(ws.url))
-    
-def on_message_data_feeder(ws, message):
-    def process(*args):
-        try:
-            # ppi(message)
-            # msg = ast.literal_eval(message)
-            msg = json.loads(message)
-
-            if('game' in msg and 'mode' in msg['game']):
-                mode = msg['game']['mode']
-                if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
-                    process_variant_x01(msg)
-                # elif mode == 'Cricket':
-                #     process_match_cricket(msg)
-            elif('event' in msg and msg['event'] == 'lobby'):
-                process_lobby(msg)
-
-        except Exception as e:
-            ppe('WS-Message failed: ', e)
-
-    threading.Thread(target=process).start()
-
-def on_close_data_feeder(ws, close_status_code, close_msg):
     try:
-        ppi("Websocket [" + str(ws.url) + "] closed! " + str(close_msg) + " - " + str(close_status_code))
-        ppi("Retry : %s" % time.ctime())
-        time.sleep(3)
-        connect_data_feeder()
-    except Exception as e:
-        ppe('WS-Close failed: ', e)
-    
-def on_error_data_feeder(ws, error):
-    ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
+        server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
+        server_url = 'ws://' + server_host
+        sio.connect(server_url, transports=['websocket'])
+    except Exception:
+        try:
+            server_url = 'wss://' + server_host
+            sio.connect(server_url, transports=['websocket'], retry=True, wait_timeout=3)
+        except Exception:
+            pass
 
-    
 
 
 
@@ -439,9 +419,6 @@ if __name__ == "__main__":
 
     args = vars(ap.parse_args())
 
-   
-    global WS_DATA_FEEDER
-    WS_DATA_FEEDER = None
 
     global WS_WLEDS
     WS_WLEDS = list()
@@ -480,7 +457,6 @@ if __name__ == "__main__":
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
 
-
     
     WLED_EFFECTS = list()
     try:     
@@ -512,8 +488,8 @@ if __name__ == "__main__":
         SCORE_AREA_EFFECTS[a] = parsed_score_area
         # ppi(parsed_score_area)
 
-    try:
-        connect_data_feeder()
+    try:            
+        connect_data_feeder() 
         for e in WLED_ENDPOINTS:
             connect_wled(e)
 
@@ -521,7 +497,7 @@ if __name__ == "__main__":
         ppe("Connect failed: ", e)
 
 
-time.sleep(30)
+time.sleep(5)
     
 
 

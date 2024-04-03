@@ -1,3 +1,8 @@
+## 1.4.15
+
+- switch to socketio-client
+
+
 ## 1.4.14
 
 - fix ws bug
