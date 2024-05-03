@@ -1,5 +1,5 @@
 PUSHD .
-python "autodarts-wled.py" ^
+python "darts-wled.py" ^
 -CON "127.0.0.1:8079" ^
 -WEPS "your-primary-wled-ip" "your-secondary-wled-ip" ^
 -DU "0" ^

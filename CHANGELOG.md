@@ -1,3 +1,8 @@
+## 1.5.0
+
+- rename application to darts-wled
+
+
 ## 1.4.15
 
 - switch to socketio-client

@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.4.15'
+VERSION = '1.5.0'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -440,7 +440,7 @@ if __name__ == "__main__":
     osRelease = platform.release()
     ppi('\r\n', None, '')
     ppi('##########################################', None, '')
-    ppi('       WELCOME TO AUTODARTS-WLED', None, '')
+    ppi('       WELCOME TO DARTS-WLED', None, '')
     ppi('##########################################', None, '')
     ppi('VERSION: ' + VERSION, None, '')
     ppi('RUNNING OS: ' + osType + ' | ' + osName + ' | ' + osRelease, None, '')

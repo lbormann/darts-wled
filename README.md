@@ -1,7 +1,7 @@
-# AUTODARTS-WLED
-[![Downloads](https://img.shields.io/github/downloads/lbormann/autodarts-wled/total.svg)](https://github.com/lbormann/autodarts-wled/releases/latest)
+# DARTS-WLED
+[![Downloads](https://img.shields.io/github/downloads/lbormann/darts-wled/total.svg)](https://github.com/lbormann/darts-wled/releases/latest)
 
-Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/autodarts-caller is needed that sends thrown points from https://autodarts.io to this application.
+Darts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/darts-caller is needed that sends thrown points from https://autodarts.io to this application.
 
 
 ## COMPATIBILITY
@@ -25,17 +25,17 @@ Autodarts-wled controls your wled-installation(s) https://github.com/Aircoookie/
 [![IMAGE_ALT](https://img.youtube.com/vi/fDXomw55vhI/hqdefault.jpg)](https://youtu.be/fDXomw55vhI)
 
 #### Images:
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/1.jpg?raw=true">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/1.jpg?raw=true">
 <p float="left">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/2.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/3.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/4.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/5.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/6.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/7.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/8.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/9.jpg?raw=true" width="49%">
-<img src="https://github.com/lbormann/autodarts-wled/blob/main/showcase/10.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/2.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/3.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/4.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/5.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/6.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/7.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/8.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/9.jpg?raw=true" width="49%">
+<img src="https://github.com/lbormann/darts-wled/blob/main/showcase/10.jpg?raw=true" width="49%">
 </p>
 
 ## Best working and looking LED-Location
@@ -64,7 +64,7 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 
 ### Desktop-OS: 
 
-- If you're running a desktop-driven OS it's recommended to use [autodarts-desktop](https://github.com/lbormann/autodarts-desktop) as it takes care of starting, updating, configurating and managing multiple apps.
+- If you're running a desktop-driven OS it's recommended to use [darts-hub](https://github.com/lbormann/darts-hub) as it takes care of starting, updating, configurating and managing multiple apps.
 
 
 ### Headless-OS:
@@ -82,7 +82,7 @@ Here is my currrent Hardware-Setup (You can google prices yourself):
 
 #### Get the project
 
-    git clone https://github.com/lbormann/autodarts-wled.git
+    git clone https://github.com/lbormann/darts-wled.git
 
 Go to download-directory and type:
 
@@ -94,7 +94,7 @@ Go to download-directory and type:
 
 ### Prerequisite
 
-* You need to have a running caller - https://github.com/lbormann/autodarts-caller - (latest version)
+* You need to have a running caller - https://github.com/lbormann/darts-caller - (latest version)
 * You need to have a running WLED-Installation (0.11.0 at minimum required)
 
 ### Run by executable
@@ -103,7 +103,7 @@ Go to download-directory and type:
 
 Create a shortcut of the executable; right click on the shortcut -> select properties -> add arguments in the target input at the end of the text field.
 
-Example: C:\Downloads\autodarts-wled.exe -WEPS "your-first-wled-ip" "your-second-wled-ip"
+Example: C:\Downloads\darts-wled.exe -WEPS "your-first-wled-ip" "your-second-wled-ip"
 
 Save changes.
 Click on the shortcut to start the application.
@@ -113,7 +113,7 @@ Click on the shortcut to start the application.
 
 #### Example: Linux
 
-    python3 autodarts-wled.py -WEPS "your-wled-ip"
+    python3 darts-wled.py -WEPS "your-wled-ip"
 
 
 
@@ -139,7 +139,7 @@ Click on the shortcut to start the application.
 
 *`-CON / --connection`*
 
-Host address to data-feeder (autodarts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do NOT need to change this)
+Host address to data-feeder (darts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do NOT need to change this)
     
 *`-WEPS / --wled_endpoints`*
 
@@ -240,7 +240,7 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
 * For color-name usage, validate that the color-name you want is available in the list!
 
-    validate here: **https://github.com/lbormann/autodarts-wled/blob/main/colors.txt**
+    validate here: **https://github.com/lbormann/darts-wled/blob/main/colors.txt**
 
 * To set an random effect, use 'x' or 'X' as effect-id
 
@@ -291,7 +291,7 @@ Moreover you can find ready-to-go wled-presets in the community-folder; You can 
 
 ## !!! IMPORTANT !!!
 
-This application requires a running instance of autodarts-caller https://github.com/lbormann/autodarts-caller
+This application requires a running instance of darts-caller https://github.com/lbormann/darts-caller
 
 
 ## LAST WORDS
