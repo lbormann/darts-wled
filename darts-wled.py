@@ -10,6 +10,7 @@ import time
 import requests
 import socketio
 import websocket
+import player_colors
 
 
 sh = logging.StreamHandler()
@@ -38,8 +39,6 @@ EFFECT_PARAMETER_SEPARATOR = "|"
 BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
-
-
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
@@ -141,10 +140,15 @@ def on_close_wled(ws, close_status_code, close_msg):
 def on_error_wled(ws, error):
     ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
 
-def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
+def control_wled(effect_list, ptext, bss_requested = True, is_win = False, color = None):
     global waitingForIdle
     global waitingForBoardStart
 
+    if color is not None:
+        state = get_state(None, color=color)
+
+        logger.info('BROADCAST_JSON: ' + json.dumps(state))
+        broadcast(state)
     if is_win: 
         sio.emit('message', 'board-reset')
         time.sleep(0.15)
@@ -192,7 +196,10 @@ def broadcast_intern(endpoint, data):
 
 
 
-def get_state(effect_list):
+def get_state(effect_list, color=None):
+    if color is not None:
+        #apply a solid color
+        return {"seg": {"col": [color], "fx": "0"}}
     if effect_list == ["x"] or effect_list == ["X"]:
         # TODO: add more rnd parameter
         return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
@@ -277,6 +284,8 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
 
     return parsed_list   
 
+
+
 def parse_score_area_effects_argument(score_area_effects_arguments):
     if score_area_effects_arguments == None:
         return score_area_effects_arguments
@@ -295,6 +304,12 @@ def process_lobby(msg):
     
     elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS is not None:
         control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
+
+
+def process_player_change(msg):
+    nextColor = player_colors.get_next(msg)
+
+    control_wled(None, ptext='Next-player', bss_requested=False, color=WLED_COLORS[nextColor])
 
 def process_variant_x01(msg):
     if msg['event'] == 'darts-thrown':
@@ -316,7 +331,9 @@ def process_variant_x01(msg):
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
+        if PLAYER_COLORS_ON == True:
+            process_player_change(msg)
+        elif EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
@@ -335,10 +352,18 @@ def process_variant_x01(msg):
             control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
 
     elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
+        if PLAYER_COLORS_ON == True:
+            player_colors.assign_match(msg)
+            process_player_change(msg)
+
+        elif EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
 
     elif msg['event'] == 'game-started':
+        if PLAYER_COLORS_ON == True:
+            player_colors.assign_match(msg)
+            process_player_change(msg)
+
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
     
@@ -357,6 +382,9 @@ def connect_error(data):
 def message(msg):
     try:
         # ppi(message)
+        if 'event' in msg and msg['event'] == 'unsubscribed':
+            player_colors.reset_assignments()
+            control_wled(IDLE_EFFECT, 'Unsubscribed', bss_requested=False)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
             if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
@@ -406,6 +434,8 @@ if __name__ == "__main__":
     ap.add_argument("-G", "--game_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when game won occurs")
     ap.add_argument("-M", "--match_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when match won occurs")
     ap.add_argument("-B", "--busted_effects", default=None, required=False, nargs='*', help="WLED effect-definition when bust occurs")
+    ap.add_argument( "-PCA", "--player_color_assignmets", required=False, help="A comma separated string of player names with specific color assignments. If provided, -PCO is treated as '1'.")
+    ap.add_argument("-PCO", "--player_colors_on", type=int, choices=range(0,2), default=0, required=False, help="If '1', up to 10 players are assigned a color, that color is displayed when it is that player's turn to throw.")
     ap.add_argument("-PJ", "--player_joined_effects", default=None, required=False, nargs='*', help="WLED effect-definition when player-join occurs")
     ap.add_argument("-PL", "--player_left_effects", default=None, required=False, nargs='*', help="WLED effect-definition when player-left occurs")
     for v in range(0, 181):
@@ -456,8 +486,14 @@ if __name__ == "__main__":
     BOARD_STOP_START = args['board_stop_start']
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
+    PLAYER_COLORS_ON = args['player_colors_on']
 
-    
+    if args['player_color_assignmets'] is not None:
+        DEFAULT_PLAYER_COLOR_ASSIGNMENTS = player_colors.parse_arguments(args['player_color_assignmets'])
+        PLAYER_COLORS_ON = True
+        ppi('Player color assignments are: ' + str(DEFAULT_PLAYER_COLOR_ASSIGNMENTS))
+
+
     WLED_EFFECTS = list()
     try:     
         effect_list_url = 'http://' + WLED_ENDPOINT_PRIMARY + WLED_EFFECT_LIST_PATH
