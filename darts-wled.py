@@ -6,6 +6,7 @@ import argparse
 import threading
 import logging
 from color_constants import colors as WLED_COLORS
+from color_constants import playerColorOptions as PLAYER_COLOR_OPTIONS
 import time
 import requests
 import socketio
@@ -39,7 +40,8 @@ BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
 
-
+DEFAULT_PLAYER_COLOR_ASSIGNMENTS = dict()
+MATCH_PLAYER_COLOR_ASSIGNMENTS = dict()
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
@@ -141,10 +143,15 @@ def on_close_wled(ws, close_status_code, close_msg):
 def on_error_wled(ws, error):
     ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
 
-def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
+def control_wled(effect_list, ptext, bss_requested = True, is_win = False, color = None):
     global waitingForIdle
     global waitingForBoardStart
 
+    if color is not None:
+        state = get_state(None, color=color)
+
+        logger.info('BROADCAST_JSON: ' + json.dumps(state))
+        broadcast(state)
     if is_win: 
         sio.emit('message', 'board-reset')
         time.sleep(0.15)
@@ -192,7 +199,10 @@ def broadcast_intern(endpoint, data):
 
 
 
-def get_state(effect_list):
+def get_state(effect_list, color=None):
+    if color is not None:
+        #apply a solid color
+        return {"seg": {"col": [color], "fx": "0"}}
     if effect_list == ["x"] or effect_list == ["X"]:
         # TODO: add more rnd parameter
         return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
@@ -287,7 +297,28 @@ def parse_score_area_effects_argument(score_area_effects_arguments):
     else:
         raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
 
+def handle_player_color_assignment(player_name):
+    global MATCH_PLAYER_COLOR_ASSIGNMENTS
 
+    if player_name in MATCH_PLAYER_COLOR_ASSIGNMENTS:
+        return
+    else:
+        MATCH_PLAYER_COLOR_ASSIGNMENTS[player_name] = PLAYER_COLOR_OPTIONS[len(MATCH_PLAYER_COLOR_ASSIGNMENTS)]
+
+def reset_match_player_color_map():
+    global MATCH_PLAYER_COLOR_ASSIGNMENTS
+
+    MATCH_PLAYER_COLOR_ASSIGNMENTS = DEFAULT_PLAYER_COLOR_ASSIGNMENTS.copy()
+
+def assign_match_player_colors(msg):
+    global MATCH_PLAYER_COLOR_ASSIGNMENTS
+    match_players = msg['players']
+
+    reset_match_player_color_map()
+
+    for player in match_players:
+        if MATCH_PLAYER_COLOR_ASSIGNMENTS.get(player["name"]) == None:
+            handle_player_color_assignment(player["name"])
 
 def process_lobby(msg):
     if msg['action'] == 'player-joined' and PLAYER_JOINED_EFFECTS is not None:
@@ -295,8 +326,26 @@ def process_lobby(msg):
     
     elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS is not None:
         control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
+        MATCH_PLAYER_COLOR_ASSIGNMENTS.pop(msg['event'], None)
+
+def process_player_change(msg):
+    global MATCH_PLAYER_COLOR_ASSIGNMENTS
+
+    if len(MATCH_PLAYER_COLOR_ASSIGNMENTS) == 0:
+        MATCH_PLAYER_COLOR_ASSIGNMENTS = DEFAULT_PLAYER_COLOR_ASSIGNMENTS
+
+    playerName = msg['player']
+
+    if MATCH_PLAYER_COLOR_ASSIGNMENTS.get(playerName) is None:
+        handle_player_color_assignment(playerName)
+
+    nextColor = MATCH_PLAYER_COLOR_ASSIGNMENTS.get(playerName)
+
+    control_wled(None, ptext='Next-player', bss_requested=False, color=WLED_COLORS[nextColor])
 
 def process_variant_x01(msg):
+    global MATCH_PLAYER_COLOR_ASSIGNMENTS
+
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         if SCORE_EFFECTS[val] is not None:
@@ -316,7 +365,9 @@ def process_variant_x01(msg):
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
+        if PLAYER_COLORS_ON == True:
+            process_player_change(msg)
+        elif EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
@@ -335,10 +386,18 @@ def process_variant_x01(msg):
             control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
 
     elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
+        if PLAYER_COLORS_ON == True:
+            assign_match_player_colors(msg)
+            process_player_change(msg)
+
+        elif EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
 
     elif msg['event'] == 'game-started':
+        if PLAYER_COLORS_ON == True:
+            assign_match_player_colors(msg)
+            process_player_change(msg)
+
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
     
@@ -357,6 +416,9 @@ def connect_error(data):
 def message(msg):
     try:
         # ppi(message)
+        if 'event' in msg and msg['event'] == 'unsubscribed':
+            reset_match_player_color_map()
+            control_wled(IDLE_EFFECT, 'Unsubscribed', bss_requested=False)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
             if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
@@ -406,6 +468,8 @@ if __name__ == "__main__":
     ap.add_argument("-G", "--game_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when game won occurs")
     ap.add_argument("-M", "--match_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when match won occurs")
     ap.add_argument("-B", "--busted_effects", default=None, required=False, nargs='*', help="WLED effect-definition when bust occurs")
+    ap.add_argument( "-PCA", "--player_color_assignmets", required=False, help="A json dict of player names with specific color assignments. If provided, -PCO is treated as True.")
+    ap.add_argument("-PCO", "--player_colors_on", type=bool, default=False, required=False, help="Up to 10 players are assigned a color, that color is display when it is that players turn to throw")
     ap.add_argument("-PJ", "--player_joined_effects", default=None, required=False, nargs='*', help="WLED effect-definition when player-join occurs")
     ap.add_argument("-PL", "--player_left_effects", default=None, required=False, nargs='*', help="WLED effect-definition when player-left occurs")
     for v in range(0, 181):
@@ -456,8 +520,13 @@ if __name__ == "__main__":
     BOARD_STOP_START = args['board_stop_start']
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
+    PLAYER_COLORS_ON = args['player_colors_on']
 
-    
+    if args['player_color_assignmets'] is not None:
+        logger.info('PLAYER_COLOR_ASSIGNMENTS: ' + args['player_color_assignmets'])
+        DEFAULT_PLAYER_COLOR_ASSIGNMENTS = json.loads(args['player_color_assignmets'])
+        PLAYER_COLORS_ON = True
+
     WLED_EFFECTS = list()
     try:     
         effect_list_url = 'http://' + WLED_ENDPOINT_PRIMARY + WLED_EFFECT_LIST_PATH

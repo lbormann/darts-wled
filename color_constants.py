@@ -1124,3 +1124,4 @@ colors['yellow2'] = YELLOW2
 colors['yellow3'] = YELLOW3
 colors['yellow4'] = YELLOW4
 colors = OrderedDict(sorted(colors.items(), key=lambda t: t[0]))
+playerColorOptions = list(['blue', 'red1', 'green', 'orange', 'purple', 'teal', 'magenta', 'yellow', 'limegreen', 'hotpink'])
