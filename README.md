@@ -113,9 +113,7 @@ Click on the shortcut to start the application.
 
 #### Example: Linux
 
-    python3 darts-wled.py -WEPS "your-wled-ip"
-
-
+    python3 darts-wled.py -WEPS 192.168.1.111 -CON 192.168.1.170:8079 -PCO true -PCA '{"chazensign": "blue", "kim": "hotpink"}' -B ps|2 -M ps|3 -G ps|3 -IDE ps|4
 
 ### Arguments
 
@@ -130,6 +128,8 @@ Click on the shortcut to start the application.
 - -G / --game_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -M / --match_won_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -B / --busted_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+- -PCO / --player_colors_on [OPTIONAL] [Default: False] [Possible values: See below]
+- -PCA / --player_color_assignments [OPTIONAL] [Default: None] [Possible values: See below]
 - -PJ / --player_joined_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -PL / --player_left_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
@@ -186,6 +186,14 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 
 Controls your wled(s) when a bust occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+*`-PCA / --player_color_assignments`*
+
+A json dict of player names to specific color assignments. If provided, -PCO is treated as True and remaining players will given a color. Requires a format of `'{"<player-name>": "blue"}'`.
+
+*`-PCO / --player_colors_on`*
+
+Up to 10 players are assigned a color when a match starts, that color is display when it is that players turn to throw.
 
 *`-PJ / --player_joined_effects`*
 
