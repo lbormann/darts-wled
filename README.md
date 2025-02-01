@@ -113,7 +113,7 @@ Click on the shortcut to start the application.
 
 #### Example: Linux
 
-    python3 darts-wled.py -WEPS "your-wled-ip"
+    python3 darts-wled.py -WEPS 192.168.1.111 -CON 192.168.1.170:8079 -PCO true -PCA '{"chazensign": "blue", "kim": "hotpink"}' -B ps|2 -M ps|3 -G ps|3 -IDE ps|4
 
 
 

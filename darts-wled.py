@@ -295,8 +295,8 @@ def parse_score_area_effects_argument(score_area_effects_arguments):
         return ((int(area[0]), int(area[1])), parse_effects_argument(score_area_effects_arguments[1:]))
     else:
         raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
-
-
+        
+        
 
 def process_lobby(msg):
     if msg['action'] == 'player-joined' and PLAYER_JOINED_EFFECTS is not None:
@@ -304,14 +304,18 @@ def process_lobby(msg):
     
     elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS is not None:
         control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
+        MATCH_PLAYER_COLOR_ASSIGNMENTS.pop(msg['event'], None)
 
 
 def process_player_change(msg):
     nextColor = player_colors.get_next(msg)
 
     control_wled(None, ptext='Next-player', bss_requested=False, color=WLED_COLORS[nextColor])
+    
 
 def process_variant_x01(msg):
+    global MATCH_PLAYER_COLOR_ASSIGNMENTS
+
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         if SCORE_EFFECTS[val] is not None:
@@ -354,7 +358,6 @@ def process_variant_x01(msg):
     elif msg['event'] == 'match-started':
         if PLAYER_COLORS_ON == True:
             player_colors.assign_match(msg)
-            process_player_change(msg)
 
         elif EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
@@ -384,6 +387,7 @@ def message(msg):
         # ppi(message)
         if 'event' in msg and msg['event'] == 'unsubscribed':
             player_colors.reset_assignments()
+
             control_wled(IDLE_EFFECT, 'Unsubscribed', bss_requested=False)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
