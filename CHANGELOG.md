@@ -1,3 +1,7 @@
+## 1.6.0
+
+- add player colors
+
 ## 1.5.0
 
 - rename application to darts-wled
