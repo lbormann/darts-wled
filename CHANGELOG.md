@@ -1,4 +1,4 @@
-## 1.5.1
+## 1.5.2
 
 - add --BSW Arg to make it posible to activate/deactivate Bord Stop after win
 
