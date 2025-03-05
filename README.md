@@ -133,7 +133,8 @@ Click on the shortcut to start the application.
 - -PJ / --player_joined_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -PL / --player_left_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
-- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+- -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
+- -BSW / --board_stop_after_win [OPTIONAL] [Default: 0]
 
 
 
@@ -206,6 +207,10 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 
 Besides the definition of single score-values you can define up to 12 score-areas.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+*`-BSW / --board_stop_after_win`*
+Controles board stop behaviour after win. When activated, the board will be stoped after winning Leg or match
+
 
 
 _ _ _ _ _ _ _ _ _ _

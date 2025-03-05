@@ -1,3 +1,7 @@
+## 1.5.1
+
+- add --BSW Arg to make it posible to activate/deactivate Bord Stop after win
+
 ## 1.5.0
 
 - rename application to darts-wled

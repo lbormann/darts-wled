@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.5.0'
+VERSION = '1.5.1'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -149,7 +149,16 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
         sio.emit('message', 'board-reset')
         time.sleep(0.15)
 
-    if bss_requested == True and (BOARD_STOP_START != 0.0 or is_win == True):
+    # if bss_requested == True and (BOARD_STOP_START != 0.0 or is_win == True): 
+    # changed becouse of aditional -BSW parameter
+    if bss_requested == True and (BOARD_STOP_START != 0.0):
+        waitingForBoardStart = True
+        sio.emit('message', 'board-stop')
+        if is_win == 1:
+            time.sleep(0.15)
+
+    #Bord Stop after Win
+    if BOARD_STOP_AFTER_WIN != 0 and is_win == True:
         waitingForBoardStart = True
         sio.emit('message', 'board-stop')
         if is_win == 1:
@@ -416,6 +425,7 @@ if __name__ == "__main__":
         ap.add_argument("-A" + area, "--score_area_" + area + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition for score-area")
     
     ap.add_argument("-DEB", "--debug", type=int, choices=range(0, 2), default=False, required=False, help="If '1', the application will output additional information")
+    ap.add_argument("-BSW", "--board_stop_after_win", type=int, choices=range(0, 2), default=False, required=False, help="Let the board stop after winning the match check it to activate the board stop")
 
     args = vars(ap.parse_args())
 
@@ -454,6 +464,7 @@ if __name__ == "__main__":
     WLED_ENDPOINT_PRIMARY = args['wled_endpoints'][0]
     EFFECT_DURATION = args['effect_duration']
     BOARD_STOP_START = args['board_stop_start']
+    BOARD_STOP_AFTER_WIN = args['board_stop_after_win']
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
 
