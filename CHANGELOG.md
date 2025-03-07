@@ -1,3 +1,7 @@
+## 1.5.3
+- bugfix board takeout freeze after winning the match with arg -BSW set to 0
+- set -BSW to default true
+
 ## 1.5.2
 
 - add --BSW Arg to make it posible to activate/deactivate Bord Stop after win
