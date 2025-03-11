@@ -31,4 +31,7 @@ python "darts-wled.py" ^
 -A11 "150-164" "solid|orange" ^
 -A12 "165-180" "solid|red1" ^
 -DEB "0" ^
--BSW "0"
+-BSW "1" ^
+-BSE "solid|red1" ^
+-TE "solid|lightgoldenrodyellow" ^
+-CE "solid|blue"

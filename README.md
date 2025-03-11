@@ -134,7 +134,10 @@ Click on the shortcut to start the application.
 - -PL / --player_left_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -S{0-180} / --score_{0-180}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -A{1-12} / --score_area_{1-12}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
-- -BSW / --board_stop_after_win [OPTIONAL] [Default: 0]
+- -BSW / --board_stop_after_win [OPTIONAL] [Default: 1]
+- -BSE / --board_stop_effect [OPTIONAL] [Default: None] [Possible values: See below] 
+- -TE / --takeout_effect [OPTIONAL] [Default: None] [Possible values: See below] 
+- -CE / --calibration_effect [OPTIONAL] [Default: None] [Possible values: See below] 
 
 
 
@@ -210,6 +213,18 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 
 *`-BSW / --board_stop_after_win`*
 Controles board stop behaviour after win. When activated, the board will be stoped after winning Leg or match
+
+*`-BSE / --board_stop_effect`*
+Controls your wled(s) when a board stop occurs during the match.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+*`-TE / --btakeout_effect`*
+Controls your wled(s) when a takeout will be performed or is wrongly triggered.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+*`-CE / --calibration_effect`*
+Controls your wled(s) when calibration will be performed.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
 
 

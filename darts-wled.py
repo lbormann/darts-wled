@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.5.3'
+VERSION = '1.6.0'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -311,6 +311,7 @@ def process_variant_x01(msg):
         val = str(msg['game']['dartValue'])
         if SCORE_EFFECTS[val] is not None:
             control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+            ppi(SCORE_EFFECTS[val])
         else:
             area_found = False
             ival = int(val)
@@ -351,7 +352,23 @@ def process_variant_x01(msg):
     elif msg['event'] == 'game-started':
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
-    
+
+def process_board_status(msg):
+    if msg['event'] == 'Board Status':
+        if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None:
+            control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False)
+        elif msg['data']['status'] == 'Board Started':
+            control_wled(IDLE_EFFECT, 'Board started', bss_requested=False)
+        elif msg['data']['status'] == 'Manual reset':
+            control_wled(IDLE_EFFECT, 'Manual reset', bss_requested=False)
+        elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
+            control_wled(TAKEOUT_EFFECT, 'Takeout started', bss_requested=False)
+        elif msg['data']['status'] == 'Takeout Finished':
+            control_wled(IDLE_EFFECT, 'Takeout Finished', bss_requested=False)
+        elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:
+            control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False)
+        elif msg['data']['status'] == 'Calibration Finished':
+            control_wled(IDLE_EFFECT, 'Calibration Finished', bss_requested=False)
 
 
 @sio.event
@@ -375,6 +392,8 @@ def message(msg):
             #     process_match_cricket(msg)
         elif('event' in msg and msg['event'] == 'lobby'):
             process_lobby(msg)
+        elif('event' in msg and msg['event'] == 'Board Status'):
+            process_board_status(msg)
 
     except Exception as e:
         ppe('DATA-FEEDER Message failed: ', e)
@@ -427,7 +446,10 @@ if __name__ == "__main__":
     
     ap.add_argument("-DEB", "--debug", type=int, choices=range(0, 2), default=False, required=False, help="If '1', the application will output additional information")
     ap.add_argument("-BSW", "--board_stop_after_win", type=int, choices=range(0, 2), default=True, required=False, help="Let the board stop after winning the match check it to activate the board stop")
-
+    # NEEDS TO BE MIGRATED!!!!!
+    ap.add_argument("-BSE", "--board_stop_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Board is stopped")
+    ap.add_argument("-TOE", "--takeout_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Takeout will be performed")
+    ap.add_argument("-CE", "--calibration_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Calibration will be performed")
     args = vars(ap.parse_args())
 
 
@@ -468,7 +490,6 @@ if __name__ == "__main__":
     BOARD_STOP_AFTER_WIN = args['board_stop_after_win']
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
-
     
     WLED_EFFECTS = list()
     try:     
@@ -480,7 +501,9 @@ if __name__ == "__main__":
     except Exception as e:
         ppe("Failed on receiving effect-list from WLED-Endpoint", e)
     
-
+    BOARD_STOP_EFFECT = parse_effects_argument(args['board_stop_effect'])
+    TAKEOUT_EFFECT = parse_effects_argument(args['takeout_effect'])
+    CALIBRATION_EFFECT = parse_effects_argument(args['calibration_effect'])
     IDLE_EFFECT = parse_effects_argument(args['idle_effect'])
     GAME_WON_EFFECTS = parse_effects_argument(args['game_won_effects'])
     MATCH_WON_EFFECTS = parse_effects_argument(args['match_won_effects'])
@@ -494,6 +517,7 @@ if __name__ == "__main__":
         parsed_score = parse_effects_argument(args["score_" + str(v) + "_effects"])
         SCORE_EFFECTS[str(v)] = parsed_score
         # ppi(parsed_score)
+        ppi(SCORE_EFFECTS[str(v)])
     SCORE_AREA_EFFECTS = dict()
     for a in range(1, 13):
         parsed_score_area = parse_score_area_effects_argument(args["score_area_" + str(a) + "_effects"])
