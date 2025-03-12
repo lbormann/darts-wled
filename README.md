@@ -226,6 +226,10 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 Controls your wled(s) when calibration will be performed.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
+*`-OFF / --wled_off`*
+Controls your wled(s) and turns it off when match has ended.
+1/true will activate the feature
+
 
 
 _ _ _ _ _ _ _ _ _ _

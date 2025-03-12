@@ -5,6 +5,8 @@
         posibillity to set effect when you takeout the darts or takeout is wrongly triggert
  - add -CE calibration effect
         possibility to set effect which will be used when calibration is in progress
+ - add -OFF wled off
+        possibility to turn WLED off after match has ended
 
 ## 1.5.3
 - bugfix board takeout freeze after winning the match with arg -BSW set to 0

@@ -164,10 +164,14 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
         sio.emit('message', 'board-stop')
         if is_win == 1:
             time.sleep(0.15)
-
-    (state, duration) = get_state(effect_list)
-    state.update({'on': True})
-    broadcast(state)
+    if effect_list == 'off':
+        tempstate = '{"on":false}'
+        state = json.loads(tempstate)
+        broadcast(state)
+    else:
+        (state, duration) = get_state(effect_list)
+        state.update({'on': True})
+        broadcast(state)
 
     ppi(ptext + ' - WLED: ' + str(state))
 
@@ -355,8 +359,9 @@ def process_variant_x01(msg):
 
 def process_board_status(msg):
     if msg['event'] == 'Board Status':
-        if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and BOARD_STOP_START == 0.0:
-            control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False)
+        if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and (BOARD_STOP_START == 0.0 or BOARD_STOP_START is None):
+           control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False)
+        #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
             control_wled(IDLE_EFFECT, 'Board started', bss_requested=False)
         elif msg['data']['status'] == 'Manual reset':
@@ -370,6 +375,9 @@ def process_board_status(msg):
         elif msg['data']['status'] == 'Calibration Finished':
             control_wled(IDLE_EFFECT, 'Calibration Finished', bss_requested=False)
 
+def process_wled_off():
+    if WLED_OFF is not None and WLED_OFF == 1:
+        control_wled('off', 'WLED Off', bss_requested=False)
 
 @sio.event
 def connect():
@@ -394,6 +402,8 @@ def message(msg):
             process_lobby(msg)
         elif('event' in msg and msg['event'] == 'Board Status'):
             process_board_status(msg)
+        elif('event' in msg and msg['event'] == 'match-ended'):
+            process_wled_off()
 
     except Exception as e:
         ppe('DATA-FEEDER Message failed: ', e)
@@ -450,6 +460,7 @@ if __name__ == "__main__":
     ap.add_argument("-BSE", "--board_stop_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Board is stopped")
     ap.add_argument("-TOE", "--takeout_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Takeout will be performed")
     ap.add_argument("-CE", "--calibration_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Calibration will be performed")
+    ap.add_argument("-OFF", "--wled_off", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED Off after game")
     args = vars(ap.parse_args())
 
 
@@ -490,6 +501,7 @@ if __name__ == "__main__":
     BOARD_STOP_AFTER_WIN = args['board_stop_after_win']
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
+    WLED_OFF = args['wled_off']
     
     WLED_EFFECTS = list()
     try:     
