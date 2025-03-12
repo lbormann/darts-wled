@@ -355,14 +355,14 @@ def process_variant_x01(msg):
 
 def process_board_status(msg):
     if msg['event'] == 'Board Status':
-        if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None:
+        if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and BOARD_STOP_START == 0.0:
             control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
             control_wled(IDLE_EFFECT, 'Board started', bss_requested=False)
         elif msg['data']['status'] == 'Manual reset':
             control_wled(IDLE_EFFECT, 'Manual reset', bss_requested=False)
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
-            control_wled(TAKEOUT_EFFECT, 'Takeout started', bss_requested=False)
+            control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False)
         elif msg['data']['status'] == 'Takeout Finished':
             control_wled(IDLE_EFFECT, 'Takeout Finished', bss_requested=False)
         elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:

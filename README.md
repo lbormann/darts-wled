@@ -218,7 +218,7 @@ Controles board stop behaviour after win. When activated, the board will be stop
 Controls your wled(s) when a board stop occurs during the match.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
-*`-TE / --btakeout_effect`*
+*`-TOE / --takeout_effect`*
 Controls your wled(s) when a takeout will be performed or is wrongly triggered.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
