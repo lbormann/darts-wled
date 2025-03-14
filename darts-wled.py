@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.6.0'
+VERSION = '1.7.0'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -301,6 +301,16 @@ def parse_score_area_effects_argument(score_area_effects_arguments):
     else:
         raise Exception(score_area_effects_arguments[0] + ' is not a valid score-area')
 
+def parse_dartscore_effects_argument(parse_dartscore_effects_argument):
+    if parse_dartscore_effects_argument == None:
+        return parse_dartscore_effects_argument
+
+    dartscore = parse_dartscore_effects_argument[0].strip().split('-')
+    if len(dartscore) == 2 and dartscore[0].isdigit() and dartscore[1].isdigit():
+        return ((int(dartscore[0]), int(dartscore[1])), parse_effects_argument(parse_dartscore_effects_argument[1:]))
+    else:
+        raise Exception(parse_dartscore_effects_argument[0] + ' is not a valid score-area')
+
 
 
 def process_lobby(msg):
@@ -330,6 +340,10 @@ def process_variant_x01(msg):
             if area_found == False:
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
+    elif msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
+        valDart = str(msg['game']['dartValue'])
+        process_dartscore_effect(valDart)
+
     elif msg['event'] == 'darts-pulled':
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
@@ -357,6 +371,15 @@ def process_variant_x01(msg):
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
 
+
+def process_dartscore_effect(singledartscore):
+    if (singledartscore == '25' or singledartscore == '50') and DART_SCORE_BULL_EFFECTS is not None:
+        control_wled(DART_SCORE_BULL_EFFECTS, 'Darts-thrown: ' + singledartscore)    
+    elif SCORE_DARTSCORE_EFFECTS[singledartscore] is not None:
+        # ppi("Singledartscore: "+ singledartscore)
+        control_wled(SCORE_DARTSCORE_EFFECTS[singledartscore], 'Darts-thrown: ' + singledartscore)
+        
+
 def process_board_status(msg):
     if msg['event'] == 'Board Status':
         if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and (BOARD_STOP_START == 0.0 or BOARD_STOP_START is None):
@@ -382,6 +405,11 @@ def process_wled_off():
 @sio.event
 def connect():
     ppi('CONNECTED TO DATA-FEEDER ' + sio.connection_url)
+    WLED_info ={
+        'status': 'WLED connected',
+        'version': VERSION
+    }
+    sio.emit('message', WLED_info)
 
 @sio.event
 def connect_error(data):
@@ -453,14 +481,18 @@ if __name__ == "__main__":
     for a in range(1, 13):
         area = str(a)
         ap.add_argument("-A" + area, "--score_area_" + area + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition for score-area")
-    
     ap.add_argument("-DEB", "--debug", type=int, choices=range(0, 2), default=False, required=False, help="If '1', the application will output additional information")
     ap.add_argument("-BSW", "--board_stop_after_win", type=int, choices=range(0, 2), default=True, required=False, help="Let the board stop after winning the match check it to activate the board stop")
-    # NEEDS TO BE MIGRATED!!!!!
     ap.add_argument("-BSE", "--board_stop_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Board is stopped")
     ap.add_argument("-TOE", "--takeout_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Takeout will be performed")
     ap.add_argument("-CE", "--calibration_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Calibration will be performed")
     ap.add_argument("-OFF", "--wled_off", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED Off after game")
+    # NEEDS TO BE MIGRATED
+    for ds in range(1, 21):
+        dartscore = str(ds)
+        ap.add_argument("-DS" + dartscore, "--dart_score_" + dartscore + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
+    ap.add_argument("-DSBULL", "--dart_score_BULL_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
+    
     args = vars(ap.parse_args())
 
 
@@ -529,13 +561,18 @@ if __name__ == "__main__":
         parsed_score = parse_effects_argument(args["score_" + str(v) + "_effects"])
         SCORE_EFFECTS[str(v)] = parsed_score
         # ppi(parsed_score)
-        ppi(SCORE_EFFECTS[str(v)])
+        # ppi(SCORE_EFFECTS[str(v)])
     SCORE_AREA_EFFECTS = dict()
     for a in range(1, 13):
         parsed_score_area = parse_score_area_effects_argument(args["score_area_" + str(a) + "_effects"])
         SCORE_AREA_EFFECTS[a] = parsed_score_area
         # ppi(parsed_score_area)
-
+    SCORE_DARTSCORE_EFFECTS = dict()
+    for ds in range(1, 21):
+        parsed_dartscore = parse_effects_argument(args["dart_score_" + str(ds) + "_effects"])
+        SCORE_DARTSCORE_EFFECTS[str(ds)] = parsed_dartscore
+        # ppi(parsed_score_area)
+    DART_SCORE_BULL_EFFECTS = parse_effects_argument(args['dart_score_BULL_effects'])
     try:            
         connect_data_feeder() 
         for e in WLED_ENDPOINTS:

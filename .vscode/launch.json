@@ -24,7 +24,9 @@
                 "-BSE=ps|8",
                 "-TOE=ps|1",
                 "-CE=ps|9",
-                "-OFF=1"
+                "-OFF=1",
+                "-DSBULL=ps|9",
+                "-DS10=ps|1"
             ]
         }
     ]

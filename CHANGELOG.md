@@ -1,3 +1,8 @@
+## 1.7.0
+ - add connection information for caller
+ - possibility to set effects for every dart
+   by setting -DSxx and -DSBULL. Just optional feature
+
 ## 1.6.0
  - add -BSE Board stop effect
         possibility to set effect when the board stops during the match

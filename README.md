@@ -137,7 +137,9 @@ Click on the shortcut to start the application.
 - -BSW / --board_stop_after_win [OPTIONAL] [Default: 1]
 - -BSE / --board_stop_effect [OPTIONAL] [Default: None] [Possible values: See below] 
 - -TE / --takeout_effect [OPTIONAL] [Default: None] [Possible values: See below] 
-- -CE / --calibration_effect [OPTIONAL] [Default: None] [Possible values: See below] 
+- -CE / --calibration_effect [OPTIONAL] [Default: None] [Possible values: See below]
+- -DS{1-20} / --dart_score_{1-20}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
+- -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
 
 
 
@@ -229,6 +231,16 @@ Define one effect/preset/playlist or a list. If you define a list, the program w
 *`-OFF / --wled_off`*
 Controls your wled(s) and turns it off when match has ended.
 1/true will activate the feature
+
+*`-DS{1-20} / --dart_score_{1-20}_effects`*
+Controls your wled(s) when a specific score for single darts occurs. You can define every score-value between 1 and 20.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+--call_single_dart must be set for the caller
+
+*`-DSBULL / --dart_score_BULL_effects`*
+Controls your wled(s) when Bull or single bull was thrown. You can define every score-value between 1 and 20.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+--call_single_dart must be set for the caller
 
 
 
