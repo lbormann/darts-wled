@@ -1,3 +1,6 @@
+## 1.7.1
+ - added Gamemodes
+
 ## 1.7.0
  - add connection information for caller
  - possibility to set effects for every dart

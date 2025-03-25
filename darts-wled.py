@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.7.0'
+VERSION = '1.7.1'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -37,7 +37,7 @@ WLED_EFFECT_LIST_PATH = '/json/eff'
 EFFECT_PARAMETER_SEPARATOR = "|"
 BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
-SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout']
+SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout', 'ATC', 'RTW', 'CountUp', 'Bermuda', 'Shanghai', 'Gotcha']
 
 
 
@@ -422,7 +422,7 @@ def message(msg):
         # ppi(message)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
-            if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout':
+            if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout' or mode == 'ATC' or mode == 'RTW' or mode == 'CountUp' or mode == 'Bermuda' or mode == 'Shanghai'or mode == 'Gotcha':
                 process_variant_x01(msg)
             # elif mode == 'Cricket':
             #     process_match_cricket(msg)

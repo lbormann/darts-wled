@@ -7,17 +7,17 @@ Darts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED
 ## COMPATIBILITY
 
 | Variant | Support |
-| ------------- | ------------- |
-| X01 | :heavy_check_mark: |
-| Cricket | :heavy_check_mark: |
-| Bermuda | |
-| Shanghai | |
-| Gotcha | |
-| Around the Clock | |
-| Round the World | |
-| Random Checkout | :heavy_check_mark: |
-| Count Up | |
-| Segment Training | |
+| ------------- | ------------- | ------------- |
+| X01 | :heavy_check_mark: | |
+| Cricket | :heavy_check_mark: | |
+| Bermuda | :heavy_check_mark: | BASIC |
+| Shanghai | :heavy_check_mark: | BASIC |
+| Gotcha | :heavy_check_mark: | |
+| Around the Clock |  | |
+| Round the World |  | |
+| Random Checkout | :heavy_check_mark: | |
+| Count Up | :heavy_check_mark: | |
+| Segment Training | | |
 
 ## Showcase
 
