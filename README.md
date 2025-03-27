@@ -182,9 +182,9 @@ By default this is not set = no effects for 'Highfinishes'.</p>
 <p>Controls your wled(s) when a high-finish occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. 
 
-Examples:<br>
-Use Presets: "ps|1 ps|2"<br>
-Use effect: "fire flicker"<br>
+Examples:\n\r
+Use Presets: "ps|1 ps|2"\n\r
+Use effect: "fire flicker"\n\r
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
