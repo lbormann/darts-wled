@@ -182,10 +182,10 @@ By default this is not set = no effects for 'Highfinishes'.</p>
 <p>Controls your wled(s) when a high-finish occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. 
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
-Use color: "solid|lightgoldenrodyellow"</p>p
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
+Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
 
@@ -194,9 +194,9 @@ For more examples see below!
 <p>Controls your wled(s) when dart-pulling occurs or a configurated duration pasts.
 Define an effect/preset/playlist that gets triggered.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -206,9 +206,9 @@ For more examples see below!
 <p>Controls your wled(s) when a game won occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. 
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -218,9 +218,9 @@ For more examples see below!
 <p>Controls your wled(s) when a match won occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -230,9 +230,9 @@ For more examples see below!
 <p>Controls your wled(s) when a bust occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -242,9 +242,9 @@ For more examples see below!
 <p>Controls your wled(s) when a player-join occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -254,9 +254,9 @@ For more examples see below!
 <p>Controls your wled(s) when a player-left occurs.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -266,9 +266,9 @@ For more examples see below!
 <p>Controls your wled(s) when a specific score occurs. You can define every score-value between 0 and 180.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -278,9 +278,9 @@ For more examples see below!
 <p>Besides the definition of single score-values you can define up to 12 score-areas.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -294,9 +294,9 @@ For more examples see below!
 <p>Controls your wled(s) when a board stop occurs during the match.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -306,9 +306,9 @@ For more examples see below!
 <p>Controls your wled(s) when a takeout will be performed or is wrongly triggered.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -318,9 +318,9 @@ For more examples see below!
 <p>Controls your wled(s) when calibration will be performed.
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -336,9 +336,9 @@ For more examples see below!
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 --call_single_dart must be set for the caller
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
@@ -349,9 +349,9 @@ For more examples see below!
 Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 --call_single_dart must be set for the caller
 
-Examples:
-Use Presets: "ps|1 ps|2"
-Use effect: "fire flicker"
+Examples:<br>
+Use Presets: "ps|1 ps|2"<br>
+Use effect: "fire flicker"<br>
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
