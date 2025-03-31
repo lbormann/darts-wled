@@ -19,14 +19,13 @@
                 "-M=ps|6",
                 "-B=ps|4",
                 "-BSW=0",
-                "-S0=ps|4",
-                "-S1=ps|4",
                 "-BSE=ps|8",
                 "-TOE=ps|1",
                 "-CE=ps|9",
                 "-OFF=1",
                 "-DSBULL=ps|9",
-                "-DS10=ps|1"
+                "-DS10=ps|1",
+                "-DEB=1"
             ]
         }
     ]

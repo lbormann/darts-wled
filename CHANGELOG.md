@@ -1,3 +1,6 @@
+## 1.7.2
+- improved ATC, RTW, Chricket, Bermuda
+
 ## 1.7.1
  - added Gamemodes
 

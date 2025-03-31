@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.7.1'
+VERSION = '1.7.2'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -323,6 +323,7 @@ def process_lobby(msg):
 def process_variant_x01(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
+        
         if SCORE_EFFECTS[val] is not None:
             control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
             ppi(SCORE_EFFECTS[val])
@@ -342,7 +343,8 @@ def process_variant_x01(msg):
 
     elif msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
         valDart = str(msg['game']['dartValue'])
-        process_dartscore_effect(valDart)
+        if valDart != '0':
+            process_dartscore_effect(valDart)
 
     elif msg['event'] == 'darts-pulled':
         if EFFECT_DURATION == 0:
@@ -371,6 +373,110 @@ def process_variant_x01(msg):
         if EFFECT_DURATION == 0:
             control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
 
+def process_variant_Bermuda(msg):
+    if msg['event'] == 'darts-thrown':
+        val = str(msg['game']['dartValue'])
+        
+        if SCORE_EFFECTS[val] is not None:
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+            ppi(SCORE_EFFECTS[val])
+        else:
+            area_found = False
+            ival = int(val)
+            for SAE in SCORE_AREA_EFFECTS:
+                if SCORE_AREA_EFFECTS[SAE] is not None:
+                    ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
+                    
+                    if ival >= area_from and ival <= area_to:
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
+                        area_found = True
+                        break
+            if area_found == False:
+                ppi('Darts-thrown: ' + val + ' - NOT configured!')
+
+    # elif msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
+    #     valDart = str(msg['game']['dartValue'])
+    #     if valDart != '0':
+    #         process_dartscore_effect(valDart)
+
+    elif msg['event'] == 'darts-pulled':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+
+    elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
+        control_wled(BUSTED_EFFECTS, 'Busted!')
+
+    elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+
+    elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+
+    elif msg['event'] == 'match-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+
+    elif msg['event'] == 'game-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+
+def process_variant_Cricket(msg):
+    if msg['event'] == 'darts-thrown':
+        val = str(msg['game']['dartValue'])
+        
+        if SCORE_EFFECTS[val] is not None:
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+            ppi(SCORE_EFFECTS[val])
+        else:
+            area_found = False
+            ival = int(val)
+            for SAE in SCORE_AREA_EFFECTS:
+                if SCORE_AREA_EFFECTS[SAE] is not None:
+                    ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
+                    
+                    if ival >= area_from and ival <= area_to:
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
+                        area_found = True
+                        break
+            if area_found == False:
+                ppi('Darts-thrown: ' + val + ' - NOT configured!')
+
+    elif msg['event'] == 'darts-pulled':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+
+    elif msg['event'] == 'game-won':
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+
+    elif msg['event'] == 'match-won':
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+
+    elif msg['event'] == 'match-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+
+    elif msg['event'] == 'game-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+
+def process_variant_ATC(msg):
+    if msg['event'] == 'darts-pulled':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+
+    elif msg['event'] == 'game-won':
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+
+    elif msg['event'] == 'match-won':
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+
+    elif msg['event'] == 'match-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+
+    elif msg['event'] == 'game-started':
+        if EFFECT_DURATION == 0:
+            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
 
 def process_dartscore_effect(singledartscore):
     if (singledartscore == '25' or singledartscore == '50') and DART_SCORE_BULL_EFFECTS is not None:
@@ -422,10 +528,16 @@ def message(msg):
         # ppi(message)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
-            if mode == 'X01' or mode == 'Cricket' or mode == 'Random Checkout' or mode == 'ATC' or mode == 'RTW' or mode == 'CountUp' or mode == 'Bermuda' or mode == 'Shanghai'or mode == 'Gotcha':
+            if mode == 'X01' or mode == 'Random Checkout' or mode == 'ATC' or mode == 'RTW' or mode == 'CountUp' or mode == 'Shanghai'or mode == 'Gotcha':
                 process_variant_x01(msg)
             # elif mode == 'Cricket':
             #     process_match_cricket(msg)
+            elif mode == 'Bermuda':
+                process_variant_Bermuda(msg)
+            elif mode == 'Cricket':
+                process_variant_Cricket(msg)
+            elif mode == 'ATC' or mode == 'RTW':
+                process_variant_ATC(msg)
         elif('event' in msg and msg['event'] == 'lobby'):
             process_lobby(msg)
         elif('event' in msg and msg['event'] == 'Board Status'):
