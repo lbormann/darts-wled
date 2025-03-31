@@ -22,8 +22,10 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
         body: |
-            **Changes in this Release**
+            # Changes in this Release
             - added Gamemodes 
+            - improved ATC, RTW, Chricket, Bermuda, tactics
+            - add -SOFF argument to turn off the lights when WLED controller is connected!
             
         draft: false
         prerelease: false

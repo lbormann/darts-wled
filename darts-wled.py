@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.7.2'
+VERSION = '1.7.3'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -71,7 +71,10 @@ def connect_wled(we):
     threading.Thread(target=process).start()
 
 def on_open_wled(ws):
-    control_wled(IDLE_EFFECT, 'CONNECTED TO WLED ' + str(ws.url), bss_requested=False)
+    if WLED_SOFF is not None and WLED_SOFF == 1:
+        control_wled('off', 'WLED Off becouse of Start', bss_requested=False)
+    else:
+        control_wled(IDLE_EFFECT, 'CONNECTED TO WLED ' + str(ws.url), bss_requested=False)
 
 def on_message_wled(ws, message):
     def process(*args):
@@ -599,12 +602,12 @@ if __name__ == "__main__":
     ap.add_argument("-TOE", "--takeout_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Takeout will be performed")
     ap.add_argument("-CE", "--calibration_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Calibration will be performed")
     ap.add_argument("-OFF", "--wled_off", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED Off after game")
-    # NEEDS TO BE MIGRATED
     for ds in range(1, 21):
         dartscore = str(ds)
         ap.add_argument("-DS" + dartscore, "--dart_score_" + dartscore + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
     ap.add_argument("-DSBULL", "--dart_score_BULL_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
-    
+    # NEEDS TO BE MIGRATED
+    ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
     args = vars(ap.parse_args())
 
 
@@ -646,6 +649,7 @@ if __name__ == "__main__":
     EFFECT_BRIGHTNESS = args['effect_brightness']
     HIGH_FINISH_ON = args['high_finish_on']
     WLED_OFF = args['wled_off']
+    WLED_SOFF = args['wled_off_at_start']
     
     WLED_EFFECTS = list()
     try:     

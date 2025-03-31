@@ -1,5 +1,6 @@
-## 1.7.2
-- improved ATC, RTW, Chricket, Bermuda
+## 1.7.3
+- improved ATC, RTW, Chricket, Bermuda, tactics
+- add -SOFF argument to turn off the lights when WLED controller is connected!
 
 ## 1.7.1
  - added Gamemodes

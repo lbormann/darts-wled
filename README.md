@@ -140,6 +140,8 @@ Click on the shortcut to start the application.
 - -CE / --calibration_effect [OPTIONAL] [Default: None] [Possible values: See below]
 - -DS{1-20} / --dart_score_{1-20}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
+- -OFF / --wled_off [OPTIONAL] [Default: 0]
+- -SOFF / --wled_off_at_start [OPTIONAL] [Default: 0]
 
 
 
@@ -375,6 +377,11 @@ For more examples see below!
 #### *`-OFF / --wled_off`*
 
 <p>Controls your wled(s) and turns it off when match has ended.
+1/true will activate the feature</p>
+
+#### *`-SOFF / --wled_off_at_start`*
+
+<p>Controls your wled(s) and turns it off when WLED controller is connected.
 1/true will activate the feature</p>
 
 #### *`-DS{1-20} / --dart_score_{1-20}_effects`*
