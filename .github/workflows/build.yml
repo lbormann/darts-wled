@@ -49,6 +49,12 @@ jobs:
             CMD_BUILD: pyinstaller -F -n darts-wled-mac -i resources/darts-wled.icns darts-wled.py 
             OUT_FILE_NAME: darts-wled-mac
             ASSET_MIME: application/zip
+          
+          - os: macos-13
+            TARGET: macos
+            CMD_BUILD: pyinstaller -F -n darts-wled-mac64 -i resources/darts-wled.icns darts-wled.py 
+            OUT_FILE_NAME: darts-wled-mac64
+            ASSET_MIME: application/zip
 
           - os: ubuntu-20.04
             TARGET: ubuntu
