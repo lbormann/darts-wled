@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.7.3'
+VERSION = '1.8.0'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -351,8 +351,7 @@ def process_variant_x01(msg):
 
     elif msg['event'] == 'darts-pulled':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
-
+            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
         control_wled(BUSTED_EFFECTS, 'Busted!')
 
@@ -370,11 +369,11 @@ def process_variant_x01(msg):
 
     elif msg['event'] == 'match-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+           check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_variant_Bermuda(msg):
     if msg['event'] == 'darts-thrown':
@@ -404,7 +403,7 @@ def process_variant_Bermuda(msg):
 
     elif msg['event'] == 'darts-pulled':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
         control_wled(BUSTED_EFFECTS, 'Busted!')
@@ -417,11 +416,11 @@ def process_variant_Bermuda(msg):
 
     elif msg['event'] == 'match-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_variant_Cricket(msg):
     if msg['event'] == 'darts-thrown':
@@ -446,7 +445,7 @@ def process_variant_Cricket(msg):
 
     elif msg['event'] == 'darts-pulled':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
 
     elif msg['event'] == 'game-won':
         control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
@@ -456,16 +455,16 @@ def process_variant_Cricket(msg):
 
     elif msg['event'] == 'match-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_variant_ATC(msg):
     if msg['event'] == 'darts-pulled':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Darts-pulled', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
 
     elif msg['event'] == 'game-won':
         control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
@@ -475,11 +474,11 @@ def process_variant_ATC(msg):
 
     elif msg['event'] == 'match-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Match-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
         if EFFECT_DURATION == 0:
-            control_wled(IDLE_EFFECT, 'Game-started', bss_requested=False)
+            check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_dartscore_effect(singledartscore):
     if (singledartscore == '25' or singledartscore == '50') and DART_SCORE_BULL_EFFECTS is not None:
@@ -489,27 +488,43 @@ def process_dartscore_effect(singledartscore):
         control_wled(SCORE_DARTSCORE_EFFECTS[singledartscore], 'Darts-thrown: ' + singledartscore)
         
 
-def process_board_status(msg):
+def process_board_status(msg, playerIndex):
     if msg['event'] == 'Board Status':
         if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and (BOARD_STOP_START == 0.0 or BOARD_STOP_START is None):
            control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False)
         #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
-            control_wled(IDLE_EFFECT, 'Board started', bss_requested=False)
-        elif msg['data']['status'] == 'Manual reset':
-            control_wled(IDLE_EFFECT, 'Manual reset', bss_requested=False)
+            check_player_idle(playerIndex, 'Board Started')
+        elif msg['data']['status'] == 'Manual reset' and IDLE_EFFECT is None:
+            check_player_idle(playerIndex, 'Manual reset')
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
             control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False)
-        elif msg['data']['status'] == 'Takeout Finished':
-            control_wled(IDLE_EFFECT, 'Takeout Finished', bss_requested=False)
+        # elif msg['data']['status'] == 'Takeout Finished':
+        #     control_wled(IDLE_EFFECT, 'Takeout Finished', bss_requested=False)
         elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:
             control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False)
         elif msg['data']['status'] == 'Calibration Finished':
-            control_wled(IDLE_EFFECT, 'Calibration Finished', bss_requested=False)
+            check_player_idle(playerIndex, 'Calibration Finished')
 
 def process_wled_off():
     if WLED_OFF is not None and WLED_OFF == 1:
         control_wled('off', 'WLED Off', bss_requested=False)
+
+def check_player_idle(playerIndex, message):
+    if playerIndex == '0' and IDLE_EFFECT is not None:
+        control_wled(IDLE_EFFECT, message, bss_requested=False)
+    elif playerIndex == '1' and IDLE_EFFECT2 is not None:
+        control_wled(IDLE_EFFECT2, message, bss_requested=False)
+    elif playerIndex == '2' and IDLE_EFFECT3 is not None:
+        control_wled(IDLE_EFFECT3, message, bss_requested=False)
+    elif playerIndex == '3' and IDLE_EFFECT4 is not None:   
+        control_wled(IDLE_EFFECT4, message, bss_requested=False)
+    elif playerIndex == '4' and IDLE_EFFECT5 is not None:
+        control_wled(IDLE_EFFECT5, message, bss_requested=False)
+    elif playerIndex == '5' and IDLE_EFFECT6 is not None:
+        control_wled(IDLE_EFFECT6, message, bss_requested=False)
+    else:
+        control_wled(IDLE_EFFECT, message, bss_requested=False)
 
 @sio.event
 def connect():
@@ -519,6 +534,8 @@ def connect():
         'version': VERSION
     }
     sio.emit('message', WLED_info)
+    if WLED_SOFF is not None and WLED_SOFF == 1:
+        control_wled('off', 'WLED Off becouse of Start', bss_requested=False)
 
 @sio.event
 def connect_error(data):
@@ -527,7 +544,10 @@ def connect_error(data):
 
 @sio.event
 def message(msg):
+    global playerIndexGlobal
     try:
+        if 'playerIndex' in msg:
+            playerIndexGlobal = msg['playerIndex']
         # ppi(message)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
@@ -543,10 +563,12 @@ def message(msg):
                 process_variant_ATC(msg)
         elif('event' in msg and msg['event'] == 'lobby'):
             process_lobby(msg)
+            playerIndexGlobal = None
         elif('event' in msg and msg['event'] == 'Board Status'):
-            process_board_status(msg)
+            process_board_status(msg, playerIndexGlobal)
         elif('event' in msg and msg['event'] == 'match-ended'):
             process_wled_off()
+            playerIndexGlobal = None
 
     except Exception as e:
         ppe('DATA-FEEDER Message failed: ', e)
@@ -585,6 +607,11 @@ if __name__ == "__main__":
     ap.add_argument("-HFO", "--high_finish_on", type=int, choices=range(1, 171), default=None, required=False, help="Individual score for highfinish")
     ap.add_argument("-HF", "--high_finish_effects", default=None, required=False, nargs='*', help="WLED effect-definition when high-finish occurs")
     ap.add_argument("-IDE", "--idle_effect", default=[DEFAULT_EFFECT_IDLE], required=False, nargs='*', help="WLED effect-definition when waiting for throw")
+    ap.add_argument("-IDE2", "--idle_effect_player2", default=None, required=False, nargs='*', help="WLED effect-definition when waiting for throw of Player2")
+    ap.add_argument("-IDE3", "--idle_effect_player3", default=None, required=False, nargs='*', help="WLED effect-definition when waiting for throw of Player3")
+    ap.add_argument("-IDE4", "--idle_effect_player4", default=None, required=False, nargs='*', help="WLED effect-definition when waiting for throw of Player4")
+    ap.add_argument("-IDE5", "--idle_effect_player5", default=None, required=False, nargs='*', help="WLED effect-definition when waiting for throw of Player5")
+    ap.add_argument("-IDE6", "--idle_effect_player6", default=None, required=False, nargs='*', help="WLED effect-definition when waiting for throw of Player6")
     ap.add_argument("-G", "--game_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when game won occurs")
     ap.add_argument("-M", "--match_won_effects", default=None, required=False, nargs='*', help="WLED effect-definition when match won occurs")
     ap.add_argument("-B", "--busted_effects", default=None, required=False, nargs='*', help="WLED effect-definition when bust occurs")
@@ -622,6 +649,8 @@ if __name__ == "__main__":
 
     global waitingForBoardStart
     waitingForBoardStart = False
+    global playerIndexGlobal
+    playerIndexGlobal = None
 
     # ppi('Started with following arguments:')
     # ppi(json.dumps(args, indent=4))
@@ -665,6 +694,11 @@ if __name__ == "__main__":
     TAKEOUT_EFFECT = parse_effects_argument(args['takeout_effect'])
     CALIBRATION_EFFECT = parse_effects_argument(args['calibration_effect'])
     IDLE_EFFECT = parse_effects_argument(args['idle_effect'])
+    IDLE_EFFECT2 = parse_effects_argument(args['idle_effect_player2'])
+    IDLE_EFFECT3 = parse_effects_argument(args['idle_effect_player3'])
+    IDLE_EFFECT4 = parse_effects_argument(args['idle_effect_player4'])
+    IDLE_EFFECT5 = parse_effects_argument(args['idle_effect_player5'])
+    IDLE_EFFECT6 = parse_effects_argument(args['idle_effect_player6'])
     GAME_WON_EFFECTS = parse_effects_argument(args['game_won_effects'])
     MATCH_WON_EFFECTS = parse_effects_argument(args['match_won_effects'])
     BUSTED_EFFECTS = parse_effects_argument(args['busted_effects'])

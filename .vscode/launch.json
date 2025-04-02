@@ -23,9 +23,13 @@
                 "-TOE=ps|1",
                 "-CE=ps|9",
                 "-OFF=1",
-                "-DSBULL=ps|9",
-                "-DS10=ps|1",
-                "-DEB=1"
+                "-SOFF=1",
+                "-DEB=0",
+                // "-IDE2=ps|10",
+                "-IDE3=ps|11",
+                "-IDE4=ps|12",
+                "-IDE5=ps|13",
+                "-IDE6=ps|14"
             ]
         }
     ]

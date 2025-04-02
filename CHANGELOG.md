@@ -1,3 +1,8 @@
+## 1.8.0
+- improved ATC, RTW, Chricket, Bermuda, tactics
+- add -SOFF argument to turn off the lights when WLED controller is connected!
+- -IDLE2 -IDLE6 different player colors for up to 6 players
+
 ## 1.7.3
 - improved ATC, RTW, Chricket, Bermuda, tactics
 - add -SOFF argument to turn off the lights when WLED controller is connected!
