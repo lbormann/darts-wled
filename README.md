@@ -211,6 +211,92 @@ Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
 
+
+#### *`-IDE2 / --idle_effect_player2`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player2.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE3 / --idle_effect_player3`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player2.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE4 / --idle_effect_player4`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player2.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE5 / --idle_effect_player5`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player2.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE6 / --idle_effect_player6`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player2.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
 #### *`-G / --game_won_effects`*
 
 <p>Controls your wled(s) when a game won occurs.
