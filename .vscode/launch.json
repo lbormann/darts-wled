@@ -21,15 +21,17 @@
                 "-BSW=0",
                 "-BSE=ps|8",
                 "-TOE=ps|1",
+                "-DU=2",
                 "-CE=ps|9",
                 "-OFF=1",
                 "-SOFF=1",
                 "-DEB=0",
-                // "-IDE2=ps|10",
+                "-IDE2=ps|10",
                 "-IDE3=ps|11",
                 "-IDE4=ps|12",
                 "-IDE5=ps|13",
-                "-IDE6=ps|14"
+                "-IDE6=ps|14",
+                "-S26=ps|5"
             ]
         }
     ]

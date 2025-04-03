@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.8.0'
+VERSION = '1.8.1'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -37,7 +37,7 @@ WLED_EFFECT_LIST_PATH = '/json/eff'
 EFFECT_PARAMETER_SEPARATOR = "|"
 BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
-SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket', 'Random Checkout', 'ATC', 'RTW', 'CountUp', 'Bermuda', 'Shanghai', 'Gotcha']
+SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket','Tactics', 'Random Checkout', 'ATC', 'RTW', 'CountUp', 'Bermuda', 'Shanghai', 'Gotcha']
 
 
 
@@ -82,6 +82,8 @@ def on_message_wled(ws, message):
             global lastMessage
             global waitingForIdle
             global waitingForBoardStart
+            global idleIndexGlobal
+            global playerIndexGlobal
 
             m = json.loads(message)
 
@@ -102,7 +104,21 @@ def on_message_wled(ws, message):
                 if 'state' in m and waitingForIdle == True: 
 
                     # [({'seg': {'fx': '0', 'col': [[250, 250, 210, 0]]}, 'on': True}, DURATION)]
-                    (ide, duration) = IDLE_EFFECT[0]
+                    
+                    if idleIndexGlobal == "0" and IDLE_EFFECT is not None:
+                        (ide, duration) = IDLE_EFFECT[0]
+                    elif idleIndexGlobal == "1" and IDLE_EFFECT2 is not None:
+                        (ide, duration) = IDLE_EFFECT2[0]
+                    elif idleIndexGlobal == "2" and IDLE_EFFECT3 is not None:
+                        (ide, duration) = IDLE_EFFECT3[0]
+                    elif idleIndexGlobal == "3" and IDLE_EFFECT4 is not None:
+                        (ide, duration) = IDLE_EFFECT4[0]
+                    elif idleIndexGlobal == "4" and IDLE_EFFECT5 is not None:
+                        (ide, duration) = IDLE_EFFECT5[0]
+                    elif idleIndexGlobal == "5" and IDLE_EFFECT6 is not None:
+                        (ide, duration) = IDLE_EFFECT6[0]
+                    else:
+                        (ide, duration) = IDLE_EFFECT[0]
                     seg = m['state']['seg'][0]
 
                     is_idle = False
@@ -144,9 +160,11 @@ def on_close_wled(ws, close_status_code, close_msg):
 def on_error_wled(ws, error):
     ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
 
-def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
+def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playerIndex = None):
     global waitingForIdle
     global waitingForBoardStart
+    global idleIndexGlobal
+    global playerIndexGlobal
 
     if is_win == True and BOARD_STOP_AFTER_WIN == 1: 
         sio.emit('message', 'board-reset')
@@ -187,7 +205,42 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False):
 
         if(wait > 0):
             time.sleep(wait)
-            (state, duration) = get_state(IDLE_EFFECT)
+            if playerIndex != None:
+                if playerIndex == playerIndexGlobal:
+                    idleIndexGlobal = playerIndex
+                    if playerIndex == '0' and IDLE_EFFECT is not None:
+                        (state, duration) = get_state(IDLE_EFFECT)
+                    elif playerIndex == '1' and IDLE_EFFECT2 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT2)
+                    elif playerIndex == '2' and IDLE_EFFECT3 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT3)
+                    elif playerIndex == '3' and IDLE_EFFECT4 is not None:   
+                        (state, duration) = get_state(IDLE_EFFECT4)
+                    elif playerIndex == '4' and IDLE_EFFECT5 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT5)
+                    elif playerIndex == '5' and IDLE_EFFECT6 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT6)
+                    else:
+                        (state, duration) = get_state(IDLE_EFFECT)
+                else:
+                    
+                    idleIndexGlobal = playerIndexGlobal
+                    if playerIndexGlobal == '0' and IDLE_EFFECT is not None:
+                        (state, duration) = get_state(IDLE_EFFECT)
+                    elif playerIndexGlobal == '1' and IDLE_EFFECT2 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT2)
+                    elif playerIndexGlobal == '2' and IDLE_EFFECT3 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT3)
+                    elif playerIndexGlobal == '3' and IDLE_EFFECT4 is not None:   
+                        (state, duration) = get_state(IDLE_EFFECT4)
+                    elif playerIndexGlobal == '4' and IDLE_EFFECT5 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT5)
+                    elif playerIndexGlobal == '5' and IDLE_EFFECT6 is not None:
+                        (state, duration) = get_state(IDLE_EFFECT6)
+                    else:
+                        (state, duration) = get_state(IDLE_EFFECT)
+            else:
+                (state, duration) = get_state(IDLE_EFFECT)
             state.update({'on': True})
             broadcast(state)
 
@@ -328,7 +381,7 @@ def process_variant_x01(msg):
         val = str(msg['game']['dartValue'])
         
         if SCORE_EFFECTS[val] is not None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
             ppi(SCORE_EFFECTS[val])
         else:
             area_found = False
@@ -338,7 +391,7 @@ def process_variant_x01(msg):
                     ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
                     
                     if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
                         area_found = True
                         break
             if area_found == False:
@@ -350,37 +403,34 @@ def process_variant_x01(msg):
             process_dartscore_effect(valDart)
 
     elif msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
-            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
+                check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
-        control_wled(BUSTED_EFFECTS, 'Busted!')
+        control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
         if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
-            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True)
+            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True, playerIndex=msg['playerIndex'])
         else:
-            control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+            control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
         if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
-            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True)
+            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True, playerIndex=msg['playerIndex'])
         else:
-            control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+            control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
-           check_player_idle(msg['playerIndex'], 'match-started')
+                check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
-        if EFFECT_DURATION == 0:
-            check_player_idle(msg['playerIndex'], 'game-started')
+                check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_variant_Bermuda(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         
         if SCORE_EFFECTS[val] is not None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
             ppi(SCORE_EFFECTS[val])
         else:
             area_found = False
@@ -390,7 +440,7 @@ def process_variant_Bermuda(msg):
                     ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
                     
                     if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
                         area_found = True
                         break
             if area_found == False:
@@ -402,24 +452,21 @@ def process_variant_Bermuda(msg):
     #         process_dartscore_effect(valDart)
 
     elif msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
-        control_wled(BUSTED_EFFECTS, 'Busted!')
+        control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
-        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
-        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_variant_Cricket(msg):
@@ -427,7 +474,7 @@ def process_variant_Cricket(msg):
         val = str(msg['game']['dartValue'])
         
         if SCORE_EFFECTS[val] is not None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val)
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
             ppi(SCORE_EFFECTS[val])
         else:
             area_found = False
@@ -437,47 +484,41 @@ def process_variant_Cricket(msg):
                     ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
                     
                     if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val)
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
                         area_found = True
                         break
             if area_found == False:
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
 
     elif msg['event'] == 'game-won':
-        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-won':
-        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_variant_ATC(msg):
     if msg['event'] == 'darts-pulled':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
 
     elif msg['event'] == 'game-won':
-        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True)
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-won':
-        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True)
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
 
     elif msg['event'] == 'match-started':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'match-started')
 
     elif msg['event'] == 'game-started':
-        if EFFECT_DURATION == 0:
             check_player_idle(msg['playerIndex'], 'game-started')
 
 def process_dartscore_effect(singledartscore):
@@ -491,7 +532,7 @@ def process_dartscore_effect(singledartscore):
 def process_board_status(msg, playerIndex):
     if msg['event'] == 'Board Status':
         if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and (BOARD_STOP_START == 0.0 or BOARD_STOP_START is None):
-           control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False)
+           control_wled(BOARD_STOP_EFFECT, 'Board-stopped',bss_requested=False)
         #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
             check_player_idle(playerIndex, 'Board Started')
@@ -545,6 +586,7 @@ def connect_error(data):
 @sio.event
 def message(msg):
     global playerIndexGlobal
+    global idleIndexGlobal
     try:
         if 'playerIndex' in msg:
             playerIndexGlobal = msg['playerIndex']
@@ -564,11 +606,13 @@ def message(msg):
         elif('event' in msg and msg['event'] == 'lobby'):
             process_lobby(msg)
             playerIndexGlobal = None
+            idleIndexGlobal = None
         elif('event' in msg and msg['event'] == 'Board Status'):
             process_board_status(msg, playerIndexGlobal)
         elif('event' in msg and msg['event'] == 'match-ended'):
             process_wled_off()
             playerIndexGlobal = None
+            idleIndexGlobal = None
 
     except Exception as e:
         ppe('DATA-FEEDER Message failed: ', e)
@@ -651,6 +695,8 @@ if __name__ == "__main__":
     waitingForBoardStart = False
     global playerIndexGlobal
     playerIndexGlobal = None
+    global idleIndexGlobal
+    idleIndexGlobal = None
 
     # ppi('Started with following arguments:')
     # ppi(json.dumps(args, indent=4))

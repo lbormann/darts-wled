@@ -23,11 +23,8 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            - added Gamemodes 
-            - improved ATC, RTW, Chricket, Bermuda, tactics
-            - add -SOFF argument to turn off the lights when WLED controller is connected!
-            - -IDLE2 -IDLE6 different player colors for up to 6 players
-            ## Caller Version 2.17.11 Required!!!!!
+            - Bugfix -DU and playeridle conflict
+            ## Caller Version min 2.17.11 Required!!!!!
             
         draft: false
         prerelease: false
