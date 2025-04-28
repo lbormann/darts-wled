@@ -28,7 +28,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.8.1'
+VERSION = '1.8.2'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -38,6 +38,7 @@ EFFECT_PARAMETER_SEPARATOR = "|"
 BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket','Tactics', 'Random Checkout', 'ATC', 'RTW', 'CountUp', 'Bermuda', 'Shanghai', 'Gotcha']
+WLED_SETTINGS_ARGS={}
 
 
 
@@ -572,7 +573,8 @@ def connect():
     ppi('CONNECTED TO DATA-FEEDER ' + sio.connection_url)
     WLED_info ={
         'status': 'WLED connected',
-        'version': VERSION
+        'version': VERSION,
+        'settings': WLED_SETTINGS_ARGS
     }
     sio.emit('message', WLED_info)
     if WLED_SOFF is not None and WLED_SOFF == 1:
@@ -681,6 +683,40 @@ if __name__ == "__main__":
     ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
     args = vars(ap.parse_args())
 
+    WLED_SETTINGS_ARGS = {
+        'connection': args['connection'],
+        'debug': args['debug'],
+        'effect_duration': args['effect_duration'],
+        'board_stop_start': args['board_stop_start'],
+        'board_stop_after_win': args['board_stop_after_win'],
+        'effect_brightness': args['effect_brightness'],
+        'high_finish_on': args['high_finish_on'],
+        'wled_off': args['wled_off'],
+        'wled_off_at_start': args['wled_off_at_start'],
+        'board_stop_effect': args['board_stop_effect'],
+        'takeout_effect': args['takeout_effect'],
+        'calibration_effect': args['calibration_effect'],
+        'idle_effect': args['idle_effect'],
+        'idle_effect_player2': args['idle_effect_player2'],
+        'idle_effect_player3': args['idle_effect_player3'],
+        'idle_effect_player4': args['idle_effect_player4'],
+        'idle_effect_player5': args['idle_effect_player5'],
+        'idle_effect_player6': args['idle_effect_player6'],
+        'game_won_effects': args['game_won_effects'],
+        'match_won_effects': args['match_won_effects'],
+        'busted_effects': args['busted_effects'],
+        'player_joined_effects': args['player_joined_effects'],
+        'player_left_effects': args['player_left_effects']
+    }
+    for sS in range(0, 181):
+        sval = str(sS)
+        WLED_SETTINGS_ARGS["score_" + sval + "_effects"] = args["score_" + sval + "_effects"]
+    for sds in range(1, 21):
+        sdartscore = str(sds)
+        WLED_SETTINGS_ARGS["dart_score_" + sdartscore + "_effects"] = args["dart_score_" + sdartscore + "_effects"]
+    for sA in range(1, 13):
+        sarea = str(sA)
+        WLED_SETTINGS_ARGS["score_area_" + sarea + "_effects"] = args["score_area_" + sarea + "_effects"]
 
     global WS_WLEDS
     WS_WLEDS = list()

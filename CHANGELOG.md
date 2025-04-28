@@ -1,3 +1,6 @@
+## 1.8.2
+- some backend changes
+
 ## 1.8.1
 - Bugfix -DU and playeridle conflict
 - Caller Version min 2.17.11 Required!!!!!

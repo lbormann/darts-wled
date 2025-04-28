@@ -23,7 +23,7 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            - Bugfix -DU and playeridle conflict
+            - some backend changes
             ## Caller Version min 2.17.11 Required!!!!!
             
         draft: false
@@ -55,7 +55,7 @@ jobs:
             OUT_FILE_NAME: darts-wled-mac64
             ASSET_MIME: application/zip
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             TARGET: ubuntu
             CMD_BUILD: pyinstaller -F -n darts-wled -i resources/darts-wled.svg darts-wled.py
             OUT_FILE_NAME: darts-wled
@@ -67,7 +67,7 @@ jobs:
             OUT_FILE_NAME: darts-wled.exe
             ASSET_MIME: application/vnd.microsoft.portable-executable
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             TARGET: linux-arm64
             CMD_BUILD: |
               sudo apt-get update
