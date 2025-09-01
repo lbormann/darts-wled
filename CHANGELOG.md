@@ -1,3 +1,11 @@
+## 1.8.3
+- new WLED Data Manager for improved performance and data caching
+- automatic multi-segment support - effects now apply to all active segments
+- enhanced WLED data synchronization with change detection
+- improved error handling and logging for WLED communication
+- cached WLED effects, presets, and palettes for faster startup
+- automatic segment count detection and configuration
+
 ## 1.8.2
 - some backend changes
 

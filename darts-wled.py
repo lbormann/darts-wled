@@ -6,6 +6,7 @@ import argparse
 import threading
 import logging
 from color_constants import colors as WLED_COLORS
+from wled_data_manager import WLEDDataManager
 import time
 import requests
 import socketio
@@ -28,7 +29,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
 
 
-VERSION = '1.8.2'
+VERSION = '1.8.3'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -39,6 +40,9 @@ BOGEY_NUMBERS = [169, 168, 166, 165, 163, 162, 159]
 SUPPORTED_CRICKET_FIELDS = [15, 16, 17, 18, 19, 20, 25]
 SUPPORTED_GAME_VARIANTS = ['X01', 'Cricket','Tactics', 'Random Checkout', 'ATC', 'RTW', 'CountUp', 'Bermuda', 'Shanghai', 'Gotcha']
 WLED_SETTINGS_ARGS={}
+
+# Global WLED Data Manager variable
+wled_data_manager = None
 
 
 
@@ -245,13 +249,69 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
             state.update({'on': True})
             broadcast(state)
 
+def get_segment_count():
+    """
+    Ermittelt die Anzahl der aktiven Segmente vom WLED-Controller
+    """
+    try:
+        if wled_data_manager:
+            return wled_data_manager.get_segment_count()
+        else:
+            # Fallback: Direkte Abfrage vom Controller
+            state_url = f'http://{WLED_ENDPOINT_PRIMARY}/json/state'
+            response = requests.get(state_url, timeout=2)
+            if response.status_code == 200:
+                state_data = response.json()
+                if 'seg' in state_data:
+                    return len(state_data['seg'])
+    except Exception as e:
+        ppe("Fehler beim Ermitteln der Segmentanzahl: ", e)
+    
+    return 1  # Fallback auf 1 Segment
+
+def prepare_data_for_segments(data):
+    """
+    Bereitet die Daten für alle Segmente vor, außer bei Presets
+    """
+    try:
+        # Prüfen ob es sich um ein Preset handelt
+        if 'ps' in data:
+            # Presets werden unverändert verwendet
+            return data
+        
+        # Für Effekte und Farben: auf alle Segmente anwenden
+        if 'seg' in data:
+            segment_count = get_segment_count()
+            if segment_count > 1:
+                # Erstelle Daten für alle Segmente
+                segments_data = []
+                original_seg = data['seg']
+                
+                for i in range(segment_count):
+                    segment_data = original_seg.copy()
+                    segment_data['id'] = i  # Segment-ID setzen
+                    segments_data.append(segment_data)
+                
+                # Ersetze einzelnes Segment durch Array aller Segmente
+                modified_data = data.copy()
+                modified_data['seg'] = segments_data
+                return modified_data
+        
+        return data
+    except Exception as e:
+        ppe("Fehler beim Vorbereiten der Segmentdaten: ", e)
+        return data
+
 def broadcast(data):
     global WS_WLEDS
+
+    # Daten für alle Segmente vorbereiten (außer Presets)
+    prepared_data = prepare_data_for_segments(data)
 
     for wled_ep in WS_WLEDS:
         try:
             # ppi("Broadcasting to " + str(wled_ep))
-            threading.Thread(target=broadcast_intern, args=(wled_ep, data)).start()
+            threading.Thread(target=broadcast_intern, args=(wled_ep, prepared_data)).start()
         except:  
             continue
 
@@ -269,6 +329,39 @@ def get_state(effect_list):
         return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
     else:
         return random.choice(effect_list)
+
+def refresh_wled_data():
+    """
+    Aktualisiert die WLED-Daten bei Bedarf
+    """
+    global wled_data_manager
+    global WLED_EFFECTS
+    global WLED_EFFECT_ID_LIST
+    
+    try:
+        if wled_data_manager is None:
+            ppi("WLED Data Manager ist nicht initialisiert")
+            return False
+            
+        sync_result = wled_data_manager.sync_and_save()
+        
+        if sync_result.get("has_changes", False):
+            ppi("WLED-Daten wurden aktualisiert")
+            # Effekte-Liste aktualisieren
+            WLED_EFFECTS = wled_data_manager.get_available_effects()
+            WLED_EFFECT_ID_LIST = wled_data_manager.get_effect_ids()
+            if not WLED_EFFECT_ID_LIST:  # Fallback wenn keine IDs vorhanden
+                WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1))
+            
+            # Prüfen ob sich die Segmentanzahl geändert hat
+            segment_count = get_segment_count()
+            ppi(f"Aktuelle Segmentanzahl: {segment_count}")
+            
+            return True
+        return False
+    except Exception as e:
+        ppe("Fehler beim Aktualisieren der WLED-Daten: ", e)
+        return False
 
 def parse_effects_argument(effects_argument, custom_duration_possible = True):
     if effects_argument == None or effects_argument == ["x"] or effects_argument == ["X"]:
@@ -719,19 +812,17 @@ if __name__ == "__main__":
         WLED_SETTINGS_ARGS["score_area_" + sarea + "_effects"] = args["score_area_" + sarea + "_effects"]
 
     global WS_WLEDS
-    WS_WLEDS = list()
-
     global lastMessage
-    lastMessage = None
-
     global waitingForIdle
-    waitingForIdle = False
-
     global waitingForBoardStart
-    waitingForBoardStart = False
     global playerIndexGlobal
-    playerIndexGlobal = None
     global idleIndexGlobal
+    
+    WS_WLEDS = list()
+    lastMessage = None
+    waitingForIdle = False
+    waitingForBoardStart = False
+    playerIndexGlobal = None
     idleIndexGlobal = None
 
     # ppi('Started with following arguments:')
@@ -762,15 +853,68 @@ if __name__ == "__main__":
     WLED_OFF = args['wled_off']
     WLED_SOFF = args['wled_off_at_start']
     
+    # Initialize WLED Data Manager
+    wled_data_manager = WLEDDataManager(WLED_ENDPOINT_PRIMARY, "wled_data.json")
+    
+    # Load existing data or create new
+    ppi("Initialisiere WLED Data Manager...")
+    if not wled_data_manager.load_data_from_file():
+        ppi("Erstelle neue WLED-Datendatei...")
+    
+    # Sync WLED data at startup
+    ppi("Synchronisiere WLED-Daten...")
+    sync_result = wled_data_manager.sync_and_save()
+    
+    if sync_result.get("has_changes", False):
+        changes = sync_result.get("changes", {})
+        ppi("WLED-Daten aktualisiert:")
+        if "effects" in changes:
+            effects_info = changes["effects"]
+            ppi(f"  - Effekte: {effects_info['total_new']} (vorher: {effects_info['total_old']})")
+            if effects_info.get("added"):
+                ppi(f"    Hinzugefügt: {', '.join(effects_info['added'])}")
+            if effects_info.get("removed"):
+                ppi(f"    Entfernt: {', '.join(effects_info['removed'])}")
+        if "presets" in changes:
+            presets_info = changes["presets"]
+            ppi(f"  - Presets: {presets_info['new_count']} (vorher: {presets_info['old_count']})")
+        if "palettes" in changes:
+            palettes_info = changes["palettes"]
+            ppi(f"  - Paletten: {palettes_info['new_count']} (vorher: {palettes_info['old_count']})")
+    else:
+        ppi("WLED-Daten sind aktuell")
+    
+    # Display WLED data summary
+    summary = wled_data_manager.get_data_summary()
+    segment_count = get_segment_count()
+    ppi(f"WLED-Controller ({summary['endpoint']}):")
+    ppi(f"  - {summary['effects_count']} Effekte verfügbar")
+    ppi(f"  - {summary['presets_count']} Presets verfügbar") 
+    ppi(f"  - {summary['palettes_count']} Paletten verfügbar")
+    ppi(f"  - {segment_count} aktive Segmente erkannt")
+    
     WLED_EFFECTS = list()
+    WLED_EFFECT_ID_LIST = []
+    
     try:     
-        effect_list_url = 'http://' + WLED_ENDPOINT_PRIMARY + WLED_EFFECT_LIST_PATH
-        WLED_EFFECTS = requests.get(effect_list_url, headers={'Accept': 'application/json'})
-        WLED_EFFECTS = [we.lower().split('@', 1)[0] for we in WLED_EFFECTS.json()]  
-        WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1)) 
-        ppi("Your primary WLED-Endpoint (" + effect_list_url + ") offers " + str(len(WLED_EFFECTS)) + " effects")
+        # Use cached effects from data manager instead of making new request
+        WLED_EFFECTS = wled_data_manager.get_available_effects()
+        WLED_EFFECT_ID_LIST = wled_data_manager.get_effect_ids()
+        if not WLED_EFFECT_ID_LIST:  # Fallback wenn keine IDs vorhanden
+            WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1))
+        ppi("Verwende gespeicherte WLED-Effekte: " + str(len(WLED_EFFECTS)) + " Effekte")
     except Exception as e:
-        ppe("Failed on receiving effect-list from WLED-Endpoint", e)
+        # Fallback to original method if data manager fails
+        try:
+            effect_list_url = 'http://' + WLED_ENDPOINT_PRIMARY + WLED_EFFECT_LIST_PATH
+            WLED_EFFECTS = requests.get(effect_list_url, headers={'Accept': 'application/json'})
+            WLED_EFFECTS = [we.lower().split('@', 1)[0] for we in WLED_EFFECTS.json()]  
+            WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1)) 
+            ppi("Fallback - Effekte direkt von WLED geladen: " + str(len(WLED_EFFECTS)) + " Effekte")
+        except Exception as e2:
+            ppe("Failed on receiving effect-list from WLED-Endpoint", e2)
+            WLED_EFFECTS = []
+            WLED_EFFECT_ID_LIST = []
     
     BOARD_STOP_EFFECT = parse_effects_argument(args['board_stop_effect'])
     TAKEOUT_EFFECT = parse_effects_argument(args['takeout_effect'])
