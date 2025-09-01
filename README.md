@@ -7,17 +7,17 @@ Darts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED
 ## COMPATIBILITY
 
 | Variant | Support |
-| ------------- | ------------- | ------------- |
-| X01 | :heavy_check_mark: | |
-| Cricket | :heavy_check_mark: | |
-| Bermuda | :heavy_check_mark: | BASIC |
-| Shanghai | :heavy_check_mark: | BASIC |
-| Gotcha | :heavy_check_mark: | |
-| Around the Clock |  | |
-| Round the World |  | |
-| Random Checkout | :heavy_check_mark: | |
-| Count Up | :heavy_check_mark: | |
-| Segment Training | | |
+| ------------- | ------------- |
+| X01 | :heavy_check_mark: | 
+| Cricket | :heavy_check_mark: | 
+| Bermuda | :heavy_check_mark: | BASIC 
+| Shanghai | :heavy_check_mark: | BASIC 
+| Gotcha | :heavy_check_mark: | 
+| Around the Clock |  | 
+| Round the World |  | 
+| Random Checkout | :heavy_check_mark: | 
+| Count Up | :heavy_check_mark: | 
+| Segment Training | | 
 
 ## Showcase
 
@@ -140,107 +140,369 @@ Click on the shortcut to start the application.
 - -CE / --calibration_effect [OPTIONAL] [Default: None] [Possible values: See below]
 - -DS{1-20} / --dart_score_{1-20}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
+- -OFF / --wled_off [OPTIONAL] [Default: 0]
+- -SOFF / --wled_off_at_start [OPTIONAL] [Default: 0]
 
 
 
-*`-CON / --connection`*
+#### *`-CON / --connection`*
 
-Host address to data-feeder (darts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do NOT need to change this)
+<p>Host address to data-feeder (darts-caller). By Default this is '127.0.0.1:8079' (means your local ip-address / usually you do NOT need to change this)</p>
     
-*`-WEPS / --wled_endpoints`*
+#### *`-WEPS / --wled_endpoints`*
 
-IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'. It is important to say that in case of multiple endpoints, the first one is treated as your primary endpoint which means
-it will be used to check if is idle state is returned. Moreover if you drive multiple WLEDS make sure you disable WLEDs Sync function.
+<p>IP to your WLED. You can define multiple entries. For example: '192.168.3.200' '192.168.3.201'. 
+It is important to say that in case of multiple endpoints, the first one is treated as your primary endpoint which means it will be used to check if is idle state is returned. 
+Moreover if you drive multiple WLEDS make sure you disable WLEDs Sync function.</p>
 
-*`-DU / --effect_duration`*
+#### *`-DU / --effect_duration`*
 
-Duration (in seconds), after a triggered effect/preset/playlist will return to idle-effect. By default this is '0' (infinity duration = return to idle happens when you pull your darts)
+<p>Duration (in seconds), after a triggered effect/preset/playlist will return to idle-effect. 
+By default this is '0' (infinity duration = return to idle happens when you pull your darts)</p>
 
-*`-BSS / --board_stop_start`*
+#### *`-BSS / --board_stop_start`*
 
-The app stops your board after thrown darts. When duration (-DU) pasts wled returns to idle and starts the board: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. In my tests '0.4' was an appropriate value.
+<p>The app stops your board after thrown darts. 
+When duration (-DU) pasts wled returns to idle and starts the board: Value '0.0' means no "stop-start" at all; values greater '0.0' declare how long the start should be delayed. 
+    
+For instance a value '0.3' delays the board-start for one third of second after wled switched back to idle. You can play around with that. 
+In my tests '0.4' was an appropriate value.</p>
 
-*`-BRI / --effect_brightness`*
+#### *`-BRI / --effect_brightness`*
 
-Brightness for WLED-effects. You can choose a value between '1' and '255'. By default this is 175.
+<p>Brightness for WLED-effects. You can choose a value between '1' and '255'. 
+By default this is 175.</p>
 
-*`-HFO / --high_finish_on`*
+#### *`-HFO / --high_finish_on`*
 
-Define what a highfinish means for you. Choose a score-value between '2' and '170'. This value is relevant for argument '-HF'. By default this is not set = no effects for 'Highfinishes'.
+<p>Define what a highfinish means for you. Choose a score-value between '2' and '170'. 
+This value is relevant for argument '-HF'. 
+By default this is not set = no effects for 'Highfinishes'.</p>
 
-*`-HF / --high_finish_effects`*
+#### *`-HF / --high_finish_effects`*
 
-Controls your wled(s) when a high-finish occurs.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+<p>Controls your wled(s) when a high-finish occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. 
 
-*`-IDE / --idle_effect`*
 
-Controls your wled(s) when dart-pulling occurs or a configurated duration pasts.
-Define an effect/preset/playlist that gets triggered. For examples see below!
+Examples:
 
-*`-G / --game_won_effects`*
+Use Presets: "ps|1 ps|2"
 
-Controls your wled(s) when a game won occurs.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+Use effect: "fire flicker"
 
-*`-M / --match_won_effects`*
+Use color: "solid|lightgoldenrodyellow"</p>
 
-Controls your wled(s) when a match won occurs.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+For more examples see below!
 
-*`-B / --busted_effects`*
+#### *`-IDE / --idle_effect`*
 
-Controls your wled(s) when a bust occurs.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+<p>Controls your wled(s) when dart-pulling occurs or a configurated duration pasts.
+Define an effect/preset/playlist that gets triggered.
 
-*`-PJ / --player_joined_effects`*
 
-Controls your wled(s) when a player-join occurs.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+Examples:
 
-*`-PL / --player_left_effects`*
+Use Presets: "ps|1 ps|2"
 
-Controls your wled(s) when a player-left occurs.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+Use effect: "fire flicker"
 
-*`-S{0-180} / --score_{0-180}_effects`*
+Use color: "solid|lightgoldenrodyellow"</p>
 
-Controls your wled(s) when a specific score occurs. You can define every score-value between 0 and 180.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+For more examples see below!
 
-*`-A{1-12} / --score_area_{1-12}_effects`*
 
-Besides the definition of single score-values you can define up to 12 score-areas.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+#### *`-IDE2 / --idle_effect_player2`*
 
-*`-BSW / --board_stop_after_win`*
-Controles board stop behaviour after win. When activated, the board will be stoped after winning Leg or match
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player2.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
 
-*`-BSE / --board_stop_effect`*
-Controls your wled(s) when a board stop occurs during the match.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
 
-*`-TOE / --takeout_effect`*
-Controls your wled(s) when a takeout will be performed or is wrongly triggered.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+Examples:
 
-*`-CE / --calibration_effect`*
-Controls your wled(s) when calibration will be performed.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+Use Presets: "ps|1 ps|2"
 
-*`-OFF / --wled_off`*
-Controls your wled(s) and turns it off when match has ended.
-1/true will activate the feature
+Use effect: "fire flicker"
 
-*`-DS{1-20} / --dart_score_{1-20}_effects`*
-Controls your wled(s) when a specific score for single darts occurs. You can define every score-value between 1 and 20.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE3 / --idle_effect_player3`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player3.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE4 / --idle_effect_player4`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player4.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE5 / --idle_effect_player5`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player5.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-IDE6 / --idle_effect_player6`*
+
+<p>Controls your wled(s) when dart-pulling occurs and changes the idle collor for player6.
+If you want to know when its your turn set the -IDE parameters to different collors and remember yours. 
+Define an effect/preset/playlist that gets triggered.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-G / --game_won_effects`*
+
+<p>Controls your wled(s) when a game won occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. 
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-M / --match_won_effects`*
+
+<p>Controls your wled(s) when a match won occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-B / --busted_effects`*
+
+<p>Controls your wled(s) when a bust occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-PJ / --player_joined_effects`*
+
+<p>Controls your wled(s) when a player-join occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-PL / --player_left_effects`*
+
+<p>Controls your wled(s) when a player-left occurs.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-S{0-180} / --score_{0-180}_effects`*
+
+<p>Controls your wled(s) when a specific score occurs. You can define every score-value between 0 and 180.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+For more examples see below!
+
+#### *`-A{1-12} / --score_area_{1-12}_effects`*
+
+<p>Besides the definition of single score-values you can define up to 12 score-areas.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-BSW / --board_stop_after_win`*
+
+<p>Controles board stop behaviour after win. When activated, the board will be stoped after winning Leg or match</p>
+
+#### *`-BSE / --board_stop_effect`*
+
+<p>Controls your wled(s) when a board stop occurs during the match.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-TOE / --takeout_effect`*
+
+<p>Controls your wled(s) when a takeout will be performed or is wrongly triggered.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-CE / --calibration_effect`*
+
+<p>Controls your wled(s) when calibration will be performed.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-OFF / --wled_off`*
+
+<p>Controls your wled(s) and turns it off when match has ended.
+1/true will activate the feature</p>
+
+#### *`-SOFF / --wled_off_at_start`*
+
+<p>Controls your wled(s) and turns it off when WLED controller is connected.
+1/true will activate the feature</p>
+
+#### *`-DS{1-20} / --dart_score_{1-20}_effects`*
+
+<p>Controls your wled(s) when a specific score for single darts occurs. You can define every score-value between 1 and 20.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 --call_single_dart must be set for the caller
 
-*`-DSBULL / --dart_score_BULL_effects`*
-Controls your wled(s) when Bull or single bull was thrown. You can define every score-value between 1 and 20.
-Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime. For examples see below!
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
+
+#### *`-DSBULL / --dart_score_BULL_effects`*
+
+<p>Controls your wled(s) when Bull or single bull was thrown. You can define every score-value between 1 and 20.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
 --call_single_dart must be set for the caller
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|lightgoldenrodyellow"</p>
+
+For more examples see below!
 
 
 

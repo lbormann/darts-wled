@@ -14,4 +14,5 @@ I3uLL3t Todo:
 - add Gamemodes | just forwarded them to X01 should be enough for first step
 - Board Status from opponend
     - ready Parameter
+- Possibility to deactivate takeout effect when game/match finished. (Game/machwon effect should stay active )
     

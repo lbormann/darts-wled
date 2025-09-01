@@ -1,3 +1,19 @@
+## 1.8.2
+- some backend changes
+
+## 1.8.1
+- Bugfix -DU and playeridle conflict
+- Caller Version min 2.17.11 Required!!!!!
+
+## 1.8.0
+- improved ATC, RTW, Chricket, Bermuda, tactics
+- add -SOFF argument to turn off the lights when WLED controller is connected!
+- -IDLE2 -IDLE6 different player colors for up to 6 players
+
+## 1.7.3
+- improved ATC, RTW, Chricket, Bermuda, tactics
+- add -SOFF argument to turn off the lights when WLED controller is connected!
+
 ## 1.7.1
  - added Gamemodes
 
