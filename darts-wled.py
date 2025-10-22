@@ -58,20 +58,39 @@ def ppe(message, error_object):
 
 
 
+# def connect_wled(we):
+#     def process(*args):
+#         global WS_WLEDS
+#         websocket.enableTrace(False)
+#         wled_host = we
+#         if we.startswith('ws://') == False:
+#             wled_host = 'ws://' + we + '/ws'
+#         ws = websocket.WebSocketApp(wled_host,
+#                                     on_open = on_open_wled,
+#                                     on_message = on_message_wled,
+#                                     on_error = on_error_wled,
+#                                     on_close = on_close_wled)
+#         WS_WLEDS.append(ws)
+
+#         ws.run_forever()
+#     threading.Thread(target=process).start()
+
 def connect_wled(we):
     def process(*args):
         global WS_WLEDS
         websocket.enableTrace(False)
-        wled_host = we
-        if we.startswith('ws://') == False:
-            wled_host = 'ws://' + we + '/ws'
+        # URL-Bereinigung hinzufügen
+        wled_host = we.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
+        # Entferne auch bereits vorhandenes /ws am Ende
+        wled_host = wled_host.rstrip('/ws').rstrip('/')
+        wled_host = 'ws://' + wled_host + '/ws'
+        
         ws = websocket.WebSocketApp(wled_host,
                                     on_open = on_open_wled,
                                     on_message = on_message_wled,
                                     on_error = on_error_wled,
                                     on_close = on_close_wled)
         WS_WLEDS.append(ws)
-
         ws.run_forever()
     threading.Thread(target=process).start()
 
@@ -718,17 +737,65 @@ def disconnect():
 
 
 
+# def connect_data_feeder():
+#     try:
+#         server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
+#         server_url = 'ws://' + server_host
+#         sio.connect(server_url, transports=['websocket'])
+#     except Exception:
+#         try:
+#             server_url = 'wss://' + server_host
+#             sio.connect(server_url, transports=['websocket'], retry=True, wait_timeout=3)
+#         except Exception:
+#             pass
+
 def connect_data_feeder():
-    try:
+    """
+    Verbindet zum Data-Feeder mit automatischem Fallback ws -> wss
+    und wiederholten Versuchen
+    """
+    def try_connection():
         server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
-        server_url = 'ws://' + server_host
-        sio.connect(server_url, transports=['websocket'])
-    except Exception:
+        
+        # Versuch 1: ws://
+        try:
+            server_url = 'ws://' + server_host
+            ppi(f'Versuche Verbindung zu {server_url}...')
+            sio.connect(server_url, transports=['websocket'], wait_timeout=3)
+            return True
+        except Exception as e:
+            if DEBUG:
+                ppi(f'WS-Verbindung fehlgeschlagen: {str(e)}')
+        
+        # Versuch 2: wss://
         try:
             server_url = 'wss://' + server_host
-            sio.connect(server_url, transports=['websocket'], retry=True, wait_timeout=3)
-        except Exception:
-            pass
+            ppi(f'Versuche verschlüsselte Verbindung zu {server_url}...')
+            sio.connect(server_url, transports=['websocket'], wait_timeout=3)
+            return True
+        except Exception as e:
+            if DEBUG:
+                ppi(f'WSS-Verbindung fehlgeschlagen: {str(e)}')
+        
+        return False
+    
+    # Wiederholte Verbindungsversuche mit exponentieller Verzögerung
+    max_attempts = 10
+    attempt = 0
+    base_delay = 2
+    
+    while attempt < max_attempts:
+        attempt += 1
+        
+        if try_connection():
+            return  # Verbindung erfolgreich
+        
+        if attempt < max_attempts:
+            delay = min(base_delay * (2 ** (attempt - 1)), 30)  # Max 30 Sekunden
+            ppi(f'Verbindungsversuch {attempt}/{max_attempts} fehlgeschlagen. Warte {delay}s...')
+            time.sleep(delay)
+    
+    ppe('Konnte keine Verbindung zum Data-Feeder herstellen', f'Nach {max_attempts} Versuchen aufgegeben')
 
 
 
@@ -763,7 +830,7 @@ if __name__ == "__main__":
         area = str(a)
         ap.add_argument("-A" + area, "--score_area_" + area + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition for score-area")
     ap.add_argument("-DEB", "--debug", type=int, choices=range(0, 2), default=False, required=False, help="If '1', the application will output additional information")
-    ap.add_argument("-BSW", "--board_stop_after_win", type=int, choices=range(0, 2), default=True, required=False, help="Let the board stop after winning the match check it to activate the board stop")
+    ap.add_argument("-BSW", "--board_stop_after_win", type=int, choices=range(0, 2), default=False, required=False, help="Let the board stop after winning the match check it to activate the board stop")
     ap.add_argument("-BSE", "--board_stop_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Board is stopped")
     ap.add_argument("-TOE", "--takeout_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Takeout will be performed")
     ap.add_argument("-CE", "--calibration_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Calibration will be performed")
