@@ -5,6 +5,7 @@ import random
 import argparse
 import threading
 import logging
+import sys
 from color_constants import colors as WLED_COLORS
 from wled_data_manager import WLEDDataManager
 import time
@@ -26,10 +27,11 @@ logger.addHandler(sh)
 
 http_session = requests.Session()
 http_session.verify = False
-sio = socketio.Client(http_session=http_session, logger=True, engineio_logger=True)
+# Deaktiviere automatisches Reconnect - wir steuern das manuell
+sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.8.3'
+VERSION = '1.9.0'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -44,6 +46,14 @@ WLED_SETTINGS_ARGS={}
 # Global WLED Data Manager variable
 wled_data_manager = None
 
+# Global flags for connection status
+connection_status = {
+    'data_feeder': False,
+    'wled': False,
+    'initialized': False,
+    'restart_requested': False,
+    'monitoring_started': False
+}
 
 
 def ppi(message, info_object = None, prefix = '\r\n'):
@@ -55,6 +65,205 @@ def ppe(message, error_object):
     ppi(message)
     if DEBUG:
         logger.exception("\r\n" + str(error_object))
+
+
+def restart_application():
+    """
+    Signalisiert einen Neustart ohne den Prozess zu beenden
+    """
+    ppi("\n" + "="*50, None, '')
+    ppi("CONNECTION RESTORED - REINITIALIZING...", None, '')
+    ppi("="*50 + "\n", None, '')
+
+    # Close all existing connections
+    try:
+        if sio.connected:
+            sio.disconnect()
+    except:
+        pass
+    
+    try:
+        global WS_WLEDS
+        for ws in WS_WLEDS:
+            try:
+                ws.close()
+            except:
+                pass
+        WS_WLEDS = list()  # Liste leeren
+    except:
+        pass
+    
+    # Reset Status
+    connection_status['data_feeder'] = False
+    connection_status['wled'] = False
+    connection_status['initialized'] = False
+    connection_status['restart_requested'] = True
+    
+    time.sleep(2)  # Kurze Pause für sauberen Shutdown
+
+def check_data_feeder_connection():
+    """
+    Prüft ob Data-Feeder erreichbar ist (ohne zu verbinden)
+    """
+    try:
+        server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
+        
+        # Teste ws:// - mit kürzerem Timeout und reconnection=False
+        try:
+            test_url = 'ws://' + server_host
+            test_sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=False, reconnection=False)
+            test_sio.connect(test_url, transports=['websocket'], wait_timeout=2)
+            test_sio.disconnect()
+            return True
+        except:
+            pass
+        
+        # Teste wss://
+        try:
+            test_url = 'wss://' + server_host
+            test_sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=False, reconnection=False)
+            test_sio.connect(test_url, transports=['websocket'], wait_timeout=2)
+            test_sio.disconnect()
+            return True
+        except:
+            pass
+    except:
+        pass
+    
+    return False
+
+def check_wled_connection():
+    """
+    Prüft ob mindestens ein WLED-Endpoint erreichbar ist
+    """
+    for endpoint in WLED_ENDPOINTS:
+        try:
+            clean_host = endpoint.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+            test_url = f'http://{clean_host}/json/state'
+            response = requests.get(test_url, timeout=2)
+            if response.status_code == 200:
+                return True
+        except:
+            continue
+    return False
+
+def wait_for_connections():
+    """
+    Wartet kontinuierlich bis beide Verbindungen verfügbar sind
+    """
+    # Wenn wir hier sind während initialized=True, dann ist es ein Restart
+    is_restart = connection_status['initialized']
+    
+    if is_restart:
+        ppi("\n" + "="*50, None, '')
+        ppi("WAITING FOR RECONNECTION...", None, '')
+        ppi("="*50, None, '')
+        ppi("Press CTRL+C to exit\n", None, '')
+    else:
+        ppi("\n" + "="*50)
+        ppi("Wait for connections...")
+        ppi("="*50)
+        ppi("Press CTRL+C to exit\n")
+
+    check_interval = 10  # Sekunden zwischen Prüfungen
+    attempt = 0
+    
+    data_feeder_available = False
+    wled_available = False
+    
+    while True:
+        attempt += 1
+        current_time = time.strftime("%H:%M:%S")
+        
+        # Prüfe Data-Feeder
+        if not data_feeder_available:
+            ppi(f"[{current_time}] Check Data-Feeder ({CON})...", None, '')
+            if check_data_feeder_connection():
+                ppi(f"✓ Data-Feeder connected!", None, '')
+                data_feeder_available = True
+            else:
+                ppi(f"✗ Data-Feeder not available", None, '')
+        
+        # Prüfe WLED
+        if not wled_available:
+            ppi(f"[{current_time}] Check WLED-Endpoints...", None, '')
+            if check_wled_connection():
+                ppi(f"✓ WLED connected!", None, '')
+                wled_available = True
+            else:
+                ppi(f"✗ WLED not available", None, '')
+        
+        # Wenn beide verfügbar sind
+        if data_feeder_available and wled_available:
+            ppi("\n" + "="*50, None, '')
+            ppi("Both connections available!", None, '')
+            ppi("="*50 + "\n", None, '')
+            # Fahre mit Initialisierung fort
+            return True
+        
+        # Warte bis zur nächsten Prüfung
+        ppi(f"\nNext check in {check_interval} seconds... (Attempt {attempt})\n", None, '')
+        time.sleep(check_interval)
+
+def monitor_connections():
+    """
+    Überwacht kontinuierlich die Verbindungen
+    Startet Anwendung neu wenn BEIDE Verbindungen wiederhergestellt sind
+    """
+    check_interval = 10
+    last_check_time = 0
+    connection_lost = False
+    
+    while True:
+        time.sleep(1)  # Kurze Sleep-Zyklen für schnellere Reaktion
+        
+        # Prüfe nur wenn Anwendung bereits initialisiert ist
+        if not connection_status['initialized']:
+            continue
+        
+        # Skip wenn bereits ein Restart läuft
+        if connection_status['restart_requested']:
+            continue
+        
+        # Prüfe nur alle check_interval Sekunden
+        current_timestamp = time.time()
+        if current_timestamp - last_check_time < check_interval:
+            continue
+        
+        last_check_time = current_timestamp
+        
+        data_feeder_status = connection_status['data_feeder']
+        wled_status = connection_status['wled']
+        
+        # Wenn beide Verbindungen aktiv sind
+        if data_feeder_status and wled_status:
+            if connection_lost:
+                # Verbindungen wurden wiederhergestellt!
+                ppi("✓ All connections restored!", None, '')
+                connection_lost = False
+            continue
+
+        # At least one connection is lost
+        if not connection_lost:
+            ppi("⚠ Connection lost detected", None, '')
+            connection_lost = True
+        
+        # Prüfe ob Verbindungen wiederhergestellt werden können
+        current_time = time.strftime("%H:%M:%S")
+        
+        data_feeder_available = data_feeder_status or check_data_feeder_connection()
+        wled_available = wled_status or check_wled_connection()
+        
+        if not data_feeder_available:
+            ppi(f"[{current_time}] ✗ Data-Feeder not available", None, '')
+        
+        if not wled_available:
+            ppi(f"[{current_time}] ✗ WLED not available", None, '')
+        
+        # Nur wenn BEIDE wieder verfügbar sind, starte Neuinitialisierung
+        if data_feeder_available and wled_available:
+            ppi(f"[{current_time}] ✓ Both connections available! Reinitialisation...", None, '')
+            restart_application()
 
 
 
@@ -95,10 +304,12 @@ def connect_wled(we):
     threading.Thread(target=process).start()
 
 def on_open_wled(ws):
+    connection_status['wled'] = True
+    ppi(f"✓ WLED connected: {ws.url}", None, '')
     if WLED_SOFF is not None and WLED_SOFF == 1:
-        control_wled('off', 'WLED Off becouse of Start', bss_requested=False)
+        control_wled('off', 'WLED Off becouse of Start', bss_requested=False, argument_name='-SOFF')
     else:
-        control_wled(IDLE_EFFECT, 'CONNECTED TO WLED ' + str(ws.url), bss_requested=False)
+        control_wled(IDLE_EFFECT, 'CONNECTED TO WLED ' + str(ws.url), bss_requested=False, argument_name='-IDE')
 
 def on_message_wled(ws, message):
     def process(*args):
@@ -111,44 +322,52 @@ def on_message_wled(ws, message):
 
             m = json.loads(message)
 
+            # Fehlerbehandlung hinzufügen
+            if 'error' in m:
+                ppe(f"WLED Error from {ws.url}: ", m.get('error'))
+                return
+            
+            if 'success' in m and m['success'] == False:
+                ppe(f"WLED Command failed {ws.url}: ", m.get('message', 'Unknown error'))
+                return
+            
             # only process incoming messages of primary wled-endpoint
             if 'info' not in m or m['info']['ip'] != WLED_ENDPOINT_PRIMARY:
                 return
 
             if lastMessage != m:
                 lastMessage = m
-
-                # ppi(json.dumps(m, indent = 4, sort_keys = True))
-
-                # if 'state' in m :
-                #     ppi('server ps: ' + str(m['state']['ps']))
-                #     ppi('server pl: ' + str(m['state']['pl']))
-                #     ppi('server fx: ' + str(m['state']['seg'][0]['fx']))
-                    
+                
                 if 'state' in m and waitingForIdle == True: 
-
-                    # [({'seg': {'fx': '0', 'col': [[250, 250, 210, 0]]}, 'on': True}, DURATION)]
-                    
+                    # Hole den richtigen IDLE-Effekt basierend auf playerIndex
+                    idle_effect_list = None
                     if idleIndexGlobal == "0" and IDLE_EFFECT is not None:
-                        (ide, duration) = IDLE_EFFECT[0]
+                        idle_effect_list = IDLE_EFFECT
                     elif idleIndexGlobal == "1" and IDLE_EFFECT2 is not None:
-                        (ide, duration) = IDLE_EFFECT2[0]
+                        idle_effect_list = IDLE_EFFECT2
                     elif idleIndexGlobal == "2" and IDLE_EFFECT3 is not None:
-                        (ide, duration) = IDLE_EFFECT3[0]
+                        idle_effect_list = IDLE_EFFECT3
                     elif idleIndexGlobal == "3" and IDLE_EFFECT4 is not None:
-                        (ide, duration) = IDLE_EFFECT4[0]
+                        idle_effect_list = IDLE_EFFECT4
                     elif idleIndexGlobal == "4" and IDLE_EFFECT5 is not None:
-                        (ide, duration) = IDLE_EFFECT5[0]
+                        idle_effect_list = IDLE_EFFECT5
                     elif idleIndexGlobal == "5" and IDLE_EFFECT6 is not None:
-                        (ide, duration) = IDLE_EFFECT6[0]
+                        idle_effect_list = IDLE_EFFECT6
                     else:
-                        (ide, duration) = IDLE_EFFECT[0]
+                        idle_effect_list = IDLE_EFFECT
+                    
+                    if idle_effect_list is None:
+                        return
+                    
+                    # get_state wählt ein zufälliges Element aus der Liste
+                    (ide, duration) = get_state(idle_effect_list)
+                    
                     seg = m['state']['seg'][0]
 
                     is_idle = False
                     if 'ps' in ide and ide['ps'] == str(m['state']['ps']):
                         is_idle = True
-                    elif ide['seg']['fx'] == str(seg['fx']) and m['state']['ps'] == -1 and m['state']['pl'] == -1:
+                    elif 'seg' in ide and ide['seg']['fx'] == str(seg['fx']) and m['state']['ps'] == -1 and m['state']['pl'] == -1:
                         is_idle = True
                         if 'col' in ide['seg'] and ide['seg']['col'][0] not in seg['col']:
                             is_idle = False
@@ -160,11 +379,105 @@ def on_message_wled(ws, message):
                             is_idle = False
 
                     if is_idle == True:
-                        # ppi('Back to IDLE')
                         waitingForIdle = False
-                        if waitingForBoardStart == True:
+                        if waitingForBoardStart == True and sio.connected:
                             waitingForBoardStart = False
                             sio.emit('message', 'board-start:' + str(BOARD_STOP_START))
+
+        # try:
+        #     global lastMessage
+        #     global waitingForIdle
+        #     global waitingForBoardStart
+        #     global idleIndexGlobal
+        #     global playerIndexGlobal
+
+        #     m = json.loads(message)
+
+        #     # Fehlerbehandlung hinzufügen
+        #     if 'error' in m:
+        #         ppe(f"WLED Error from {ws.url}: ", m.get('error'))
+        #         return
+            
+        #     if 'success' in m and m['success'] == False:
+        #         ppe(f"WLED Command failed {ws.url}: ", m.get('message', 'Unknown error'))
+        #         return
+            
+        #     # only process incoming messages of primary wled-endpoint
+        #     if 'info' not in m or m['info']['ip'] != WLED_ENDPOINT_PRIMARY:
+        #         return
+
+        #     if lastMessage != m:
+        #         lastMessage = m
+
+        #         # ppi(json.dumps(m, indent = 4, sort_keys = True))
+
+        #         # if 'state' in m :
+        #         #     ppi('server ps: ' + str(m['state']['ps']))
+        #         #     ppi('server pl: ' + str(m['state']['pl']))
+        #         #     ppi('server fx: ' + str(m['state']['seg'][0]['fx']))
+                    
+        #         if 'state' in m and waitingForIdle == True: 
+
+        #             # [({'seg': {'fx': '0', 'col': [[250, 250, 210, 0]]}, 'on': True}, DURATION)]
+                    
+        #             # if idleIndexGlobal == "0" and IDLE_EFFECT is not None:
+        #             #     (ide, duration) = IDLE_EFFECT[0]
+        #             # elif idleIndexGlobal == "1" and IDLE_EFFECT2 is not None:
+        #             #     (ide, duration) = IDLE_EFFECT2[0]
+        #             # elif idleIndexGlobal == "2" and IDLE_EFFECT3 is not None:
+        #             #     (ide, duration) = IDLE_EFFECT3[0]
+        #             # elif idleIndexGlobal == "3" and IDLE_EFFECT4 is not None:
+        #             #     (ide, duration) = IDLE_EFFECT4[0]
+        #             # elif idleIndexGlobal == "4" and IDLE_EFFECT5 is not None:
+        #             #     (ide, duration) = IDLE_EFFECT5[0]
+        #             # elif idleIndexGlobal == "5" and IDLE_EFFECT6 is not None:
+        #             #     (ide, duration) = IDLE_EFFECT6[0]
+        #             # else:
+        #             #     (ide, duration) = IDLE_EFFECT[0]
+        #             idle_effect_list = None
+        #             if idleIndexGlobal == "0" and IDLE_EFFECT is not None:
+        #                 idle_effect_list = IDLE_EFFECT
+        #             elif idleIndexGlobal == "1" and IDLE_EFFECT2 is not None:
+        #                 idle_effect_list = IDLE_EFFECT2
+        #             elif idleIndexGlobal == "2" and IDLE_EFFECT3 is not None:
+        #                 idle_effect_list = IDLE_EFFECT3
+        #             elif idleIndexGlobal == "3" and IDLE_EFFECT4 is not None:
+        #                 idle_effect_list = IDLE_EFFECT4
+        #             elif idleIndexGlobal == "4" and IDLE_EFFECT5 is not None:
+        #                 idle_effect_list = IDLE_EFFECT5
+        #             elif idleIndexGlobal == "5" and IDLE_EFFECT6 is not None:
+        #                 idle_effect_list = IDLE_EFFECT6
+        #             else:
+        #                 idle_effect_list = IDLE_EFFECT
+                    
+        #             if idle_effect_list is None:
+        #                 return
+                    
+        #             # get_state wählt ein zufälliges Element aus der Liste
+        #             (ide, duration) = get_state(idle_effect_list)
+
+        #             seg = m['state']['seg'][0]
+
+        #             is_idle = False
+        #             if 'ps' in ide and ide['ps'] == str(m['state']['ps']):
+        #                 is_idle = True
+        #             elif ide['seg']['fx'] == str(seg['fx']) and m['state']['ps'] == -1 and m['state']['pl'] == -1:
+        #                 is_idle = True
+        #                 if 'col' in ide['seg'] and ide['seg']['col'][0] not in seg['col']:
+        #                     is_idle = False
+        #                 if 'sx' in ide['seg'] and ide['seg']['sx'] != str(seg['sx']):
+        #                     is_idle = False
+        #                 if 'ix' in ide['seg'] and ide['seg']['ix'] != str(seg['ix']):
+        #                     is_idle = False
+        #                 if 'pal' in ide['seg'] and ide['seg']['pal'] != str(seg['pal']):
+        #                     is_idle = False
+
+        #             if is_idle == True:
+        #                 # ppi('Back to IDLE')
+        #                 waitingForIdle = False
+        #                 if waitingForBoardStart == True and sio.connected:
+        #                     waitingForBoardStart = False
+        #                     sio.emit('message', 'board-start:' + str(BOARD_STOP_START))
 
 
         except Exception as e:
@@ -174,37 +487,41 @@ def on_message_wled(ws, message):
 
 def on_close_wled(ws, close_status_code, close_msg):
     try:
+        connection_status['wled'] = False
         ppi("Websocket [" + str(ws.url) + "] closed! " + str(close_msg) + " - " + str(close_status_code))
         ppi("Retry : %s" % time.ctime())
         time.sleep(3)
-        connect_wled(ws.url)
+        # Extrahiere Host aus URL und entferne /ws
+        original_host = ws.url.replace('ws://', '').replace('wss://', '').split('/')[0]
+        connect_wled(original_host)
     except Exception as e:
         ppe('WS-Close failed: ', e)
     
 def on_error_wled(ws, error):
-    ppe('WS-Error ' + str(ws.url) + ' failed: ', error)
+    ppe('WLED Controller connection lost WS-Error ' + str(ws.url) + ' failed: ', error)
 
-def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playerIndex = None):
+def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playerIndex = None, argument_name = None):
     global waitingForIdle
     global waitingForBoardStart
     global idleIndexGlobal
     global playerIndexGlobal
 
-    if is_win == True and BOARD_STOP_AFTER_WIN == 1: 
+    # Prüfe ob Data-Feeder verbunden ist, bevor board-Commands gesendet werden
+    if is_win == True and BOARD_STOP_AFTER_WIN == 1 and sio.connected: 
         sio.emit('message', 'board-reset')
         ppi('Board reset after win')
         time.sleep(0.15)
 
     # if bss_requested == True and (BOARD_STOP_START != 0.0 or is_win == True): 
     # changed becouse of aditional -BSW parameter
-    if bss_requested == True and BOARD_STOP_START != 0.0:
+    if bss_requested == True and BOARD_STOP_START != 0.0 and sio.connected:
         waitingForBoardStart = True
         sio.emit('message', 'board-stop')
         if is_win == 1:
             time.sleep(0.15)
 
     #Bord Stop after Win
-    if BOARD_STOP_AFTER_WIN != 0 and is_win == True:
+    if BOARD_STOP_AFTER_WIN != 0 and is_win == True and sio.connected:
         waitingForBoardStart = True
         sio.emit('message', 'board-stop')
         if is_win == 1:
@@ -218,7 +535,11 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
         state.update({'on': True})
         broadcast(state)
 
-    ppi(ptext + ' - WLED: ' + str(state))
+    # Erweiterte Ausgabe mit Argument-Name
+    if argument_name:
+        ppi(f"{ptext} [{argument_name}] - WLED: {str(state)}", None, '')
+    else:
+        ppi(ptext + ' - WLED: ' + str(state))
 
     if bss_requested == True:
         waitingForIdle = True
@@ -284,7 +605,7 @@ def get_segment_count():
                 if 'seg' in state_data:
                     return len(state_data['seg'])
     except Exception as e:
-        ppe("Fehler beim Ermitteln der Segmentanzahl: ", e)
+        ppe("Error while determining segment count: ", e)
     
     return 1  # Fallback auf 1 Segment
 
@@ -318,7 +639,7 @@ def prepare_data_for_segments(data):
         
         return data
     except Exception as e:
-        ppe("Fehler beim Vorbereiten der Segmentdaten: ", e)
+        ppe("Error while preparing segment data: ", e)
         return data
 
 def broadcast(data):
@@ -359,27 +680,27 @@ def refresh_wled_data():
     
     try:
         if wled_data_manager is None:
-            ppi("WLED Data Manager ist nicht initialisiert")
+            ppi("WLED Data Manager is not initialized")
             return False
             
         sync_result = wled_data_manager.sync_and_save()
         
         if sync_result.get("has_changes", False):
-            ppi("WLED-Daten wurden aktualisiert")
-            # Effekte-Liste aktualisieren
+            ppi("WLED data has been updated")
+            # Update effects list
             WLED_EFFECTS = wled_data_manager.get_available_effects()
             WLED_EFFECT_ID_LIST = wled_data_manager.get_effect_ids()
-            if not WLED_EFFECT_ID_LIST:  # Fallback wenn keine IDs vorhanden
+            if not WLED_EFFECT_ID_LIST:  # Fallback if no IDs are available
                 WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1))
-            
-            # Prüfen ob sich die Segmentanzahl geändert hat
+
+            # Check if the segment count has changed
             segment_count = get_segment_count()
-            ppi(f"Aktuelle Segmentanzahl: {segment_count}")
-            
+            ppi(f"Current segment count: {segment_count}")
+
             return True
         return False
     except Exception as e:
-        ppe("Fehler beim Aktualisieren der WLED-Daten: ", e)
+        ppe("Error while updating WLED data: ", e)
         return False
 
 def parse_effects_argument(effects_argument, custom_duration_possible = True):
@@ -484,18 +805,18 @@ def parse_dartscore_effects_argument(parse_dartscore_effects_argument):
 
 def process_lobby(msg):
     if msg['action'] == 'player-joined' and PLAYER_JOINED_EFFECTS is not None:
-        control_wled(PLAYER_JOINED_EFFECTS, 'Player joined!')    
+        control_wled(PLAYER_JOINED_EFFECTS, 'Player joined!', argument_name='-PJ')    
     
     elif msg['action'] == 'player-left' and PLAYER_LEFT_EFFECTS is not None:
-        control_wled(PLAYER_LEFT_EFFECTS, 'Player left!')
+        control_wled(PLAYER_LEFT_EFFECTS, 'Player left!', argument_name='-PL')
 
 def process_variant_x01(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         
         if SCORE_EFFECTS[val] is not None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
-            ppi(SCORE_EFFECTS[val])
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
+            # ppi(SCORE_EFFECTS[val])
         else:
             area_found = False
             ival = int(val)
@@ -504,7 +825,7 @@ def process_variant_x01(msg):
                     ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
                     
                     if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-A{SAE}')
                         area_found = True
                         break
             if area_found == False:
@@ -513,38 +834,37 @@ def process_variant_x01(msg):
     elif msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
         valDart = str(msg['game']['dartValue'])
         if valDart != '0':
-            process_dartscore_effect(valDart)
+            process_dartscore_effect(valDart, playerIndex=msg.get('playerIndex'))
 
     elif msg['event'] == 'darts-pulled':
-                check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
+                check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
-        control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg['playerIndex'])
+        control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg.get('playerIndex'), argument_name='-B')
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
         if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
-            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True, playerIndex=msg['playerIndex'])
+            control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-HF')
         else:
-            control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
+            control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
         if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
-            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True, playerIndex=msg['playerIndex'])
+            control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-HF')
         else:
-            control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
+            control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
-                check_player_idle(msg['playerIndex'], 'match-started')
+                check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
-                check_player_idle(msg['playerIndex'], 'game-started')
+                check_player_idle(msg.get('playerIndex'), 'game-started')
 
 def process_variant_Bermuda(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         
         if SCORE_EFFECTS[val] is not None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
-            ppi(SCORE_EFFECTS[val])
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
         else:
             area_found = False
             ival = int(val)
@@ -553,7 +873,7 @@ def process_variant_Bermuda(msg):
                     ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
                     
                     if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-A{SAE}')
                         area_found = True
                         break
             if area_found == False:
@@ -565,30 +885,29 @@ def process_variant_Bermuda(msg):
     #         process_dartscore_effect(valDart)
 
     elif msg['event'] == 'darts-pulled':
-            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
+            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
-        control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg['playerIndex'])
+        control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg.get('playerIndex'), argument_name='-B')
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
-        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
-        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
-            check_player_idle(msg['playerIndex'], 'match-started')
+            check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
-            check_player_idle(msg['playerIndex'], 'game-started')
+            check_player_idle(msg.get('playerIndex'), 'game-started')
 
 def process_variant_Cricket(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         
         if SCORE_EFFECTS[val] is not None:
-            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
-            ppi(SCORE_EFFECTS[val])
+            control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
         else:
             area_found = False
             ival = int(val)
@@ -597,100 +916,105 @@ def process_variant_Cricket(msg):
                     ((area_from, area_to), AREA_EFFECTS) = SCORE_AREA_EFFECTS[SAE]
                     
                     if ival >= area_from and ival <= area_to:
-                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg['playerIndex'])
+                        control_wled(AREA_EFFECTS, 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-A{SAE}')
                         area_found = True
                         break
             if area_found == False:
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'darts-pulled':
-            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
+            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
 
     elif msg['event'] == 'game-won':
-        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won':
-        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
-            check_player_idle(msg['playerIndex'], 'match-started')
+            check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
-            check_player_idle(msg['playerIndex'], 'game-started')
+            check_player_idle(msg.get('playerIndex'), 'game-started')
 
 def process_variant_ATC(msg):
     if msg['event'] == 'darts-pulled':
-            check_player_idle(msg['playerIndex'], 'Darts-pulled next: '+ str(msg['player']))
+            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
 
     elif msg['event'] == 'game-won':
-        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg['playerIndex'])
+        control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won':
-        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg['playerIndex'])
+        control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
-            check_player_idle(msg['playerIndex'], 'match-started')
+            check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
-            check_player_idle(msg['playerIndex'], 'game-started')
+            check_player_idle(msg.get('playerIndex'), 'game-started')
 
-def process_dartscore_effect(singledartscore):
+def process_dartscore_effect(singledartscore, playerIndex=None):
     if (singledartscore == '25' or singledartscore == '50') and DART_SCORE_BULL_EFFECTS is not None:
-        control_wled(DART_SCORE_BULL_EFFECTS, 'Darts-thrown: ' + singledartscore)    
-    elif SCORE_DARTSCORE_EFFECTS[singledartscore] is not None:
-        # ppi("Singledartscore: "+ singledartscore)
-        control_wled(SCORE_DARTSCORE_EFFECTS[singledartscore], 'Darts-thrown: ' + singledartscore)
-        
+        control_wled(DART_SCORE_BULL_EFFECTS, 'Darts-thrown: ' + singledartscore, playerIndex=playerIndex, argument_name='-DSBULL')    
+    elif singledartscore in SCORE_DARTSCORE_EFFECTS and SCORE_DARTSCORE_EFFECTS[singledartscore] is not None:
+        control_wled(SCORE_DARTSCORE_EFFECTS[singledartscore], 'Darts-thrown: ' + singledartscore, playerIndex=playerIndex, argument_name=f'-DS{singledartscore}')
 
 def process_board_status(msg, playerIndex):
     if msg['event'] == 'Board Status':
         if msg['data']['status'] == 'Board Stopped' and BOARD_STOP_EFFECT is not None and (BOARD_STOP_START == 0.0 or BOARD_STOP_START is None):
-           control_wled(BOARD_STOP_EFFECT, 'Board-stopped',bss_requested=False)
+           control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False, argument_name='-BSE')
         #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
             check_player_idle(playerIndex, 'Board Started')
         elif msg['data']['status'] == 'Manual reset' and IDLE_EFFECT is None:
             check_player_idle(playerIndex, 'Manual reset')
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
-            control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False)
+            control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False, argument_name='-TOE')
         # elif msg['data']['status'] == 'Takeout Finished':
         #     control_wled(IDLE_EFFECT, 'Takeout Finished', bss_requested=False)
         elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:
-            control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False)
+            control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False, argument_name='-CE')
         elif msg['data']['status'] == 'Calibration Finished':
             check_player_idle(playerIndex, 'Calibration Finished')
 
 def process_wled_off():
     if WLED_OFF is not None and WLED_OFF == 1:
-        control_wled('off', 'WLED Off', bss_requested=False)
+        control_wled('off', 'WLED Off', bss_requested=False, argument_name='-OFF')
 
 def check_player_idle(playerIndex, message):
+    # Fallback auf '0' wenn playerIndex None ist
+    if playerIndex is None:
+        playerIndex = '0'
     if playerIndex == '0' and IDLE_EFFECT is not None:
-        control_wled(IDLE_EFFECT, message, bss_requested=False)
+        control_wled(IDLE_EFFECT, message, bss_requested=False, argument_name='-IDE')
     elif playerIndex == '1' and IDLE_EFFECT2 is not None:
-        control_wled(IDLE_EFFECT2, message, bss_requested=False)
+        control_wled(IDLE_EFFECT2, message, bss_requested=False, argument_name='-IDE2')
     elif playerIndex == '2' and IDLE_EFFECT3 is not None:
-        control_wled(IDLE_EFFECT3, message, bss_requested=False)
+        control_wled(IDLE_EFFECT3, message, bss_requested=False, argument_name='-IDE3')
     elif playerIndex == '3' and IDLE_EFFECT4 is not None:   
-        control_wled(IDLE_EFFECT4, message, bss_requested=False)
+        control_wled(IDLE_EFFECT4, message, bss_requested=False, argument_name='-IDE4')
     elif playerIndex == '4' and IDLE_EFFECT5 is not None:
-        control_wled(IDLE_EFFECT5, message, bss_requested=False)
+        control_wled(IDLE_EFFECT5, message, bss_requested=False, argument_name='-IDE5')
     elif playerIndex == '5' and IDLE_EFFECT6 is not None:
-        control_wled(IDLE_EFFECT6, message, bss_requested=False)
+        control_wled(IDLE_EFFECT6, message, bss_requested=False, argument_name='-IDE6')
     else:
-        control_wled(IDLE_EFFECT, message, bss_requested=False)
+        # Fallback auf IDLE_EFFECT wenn kein Player-spezifischer Effekt definiert ist
+        if IDLE_EFFECT is not None:
+            control_wled(IDLE_EFFECT, message, bss_requested=False, argument_name='-IDE')
 
 @sio.event
 def connect():
+    connection_status['data_feeder'] = True
     ppi('CONNECTED TO DATA-FEEDER ' + sio.connection_url)
     WLED_info ={
         'status': 'WLED connected',
         'version': VERSION,
         'settings': WLED_SETTINGS_ARGS
     }
-    sio.emit('message', WLED_info)
+    if sio.connected:
+        sio.emit('message', WLED_info)
     if WLED_SOFF is not None and WLED_SOFF == 1:
-        control_wled('off', 'WLED Off becouse of Start', bss_requested=False)
+        control_wled('off', 'WLED Off becouse of Start', bss_requested=False, argument_name='-SOFF')
 
 @sio.event
 def connect_error(data):
@@ -722,7 +1046,8 @@ def message(msg):
             playerIndexGlobal = None
             idleIndexGlobal = None
         elif('event' in msg and msg['event'] == 'Board Status'):
-            process_board_status(msg, playerIndexGlobal)
+            current_player = msg.get('playerIndex', playerIndexGlobal)
+            process_board_status(msg, current_player)
         elif('event' in msg and msg['event'] == 'match-ended'):
             process_wled_off()
             playerIndexGlobal = None
@@ -733,26 +1058,15 @@ def message(msg):
 
 @sio.event
 def disconnect():
-    ppi('DISCONNECTED FROM DATA-FEEDER ' + sio.connection_url)
+    connection_status['data_feeder'] = False
+    ppi('DISCONNECTED FROM DATA-FEEDER', None, '')
+    ppi('Monitoring-Thread will check for reconnection...', None, '')
 
 
-
-# def connect_data_feeder():
-#     try:
-#         server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
-#         server_url = 'ws://' + server_host
-#         sio.connect(server_url, transports=['websocket'])
-#     except Exception:
-#         try:
-#             server_url = 'wss://' + server_host
-#             sio.connect(server_url, transports=['websocket'], retry=True, wait_timeout=3)
-#         except Exception:
-#             pass
-
-def connect_data_feeder():
+def connect_data_feeder_with_retry():
     """
-    Verbindet zum Data-Feeder mit automatischem Fallback ws -> wss
-    und wiederholten Versuchen
+    Versucht Data-Feeder-Verbindung herzustellen
+    Gibt nach begrenzten Versuchen auf
     """
     def try_connection():
         server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
@@ -760,42 +1074,80 @@ def connect_data_feeder():
         # Versuch 1: ws://
         try:
             server_url = 'ws://' + server_host
-            ppi(f'Versuche Verbindung zu {server_url}...')
+            ppi(f'Verbinde zu {server_url}...', None, '')
             sio.connect(server_url, transports=['websocket'], wait_timeout=3)
+            connection_status['data_feeder'] = True
             return True
         except Exception as e:
             if DEBUG:
-                ppi(f'WS-Verbindung fehlgeschlagen: {str(e)}')
+                ppi(f'WS-Connection failed: {str(e)}', None, '')
         
         # Versuch 2: wss://
         try:
             server_url = 'wss://' + server_host
-            ppi(f'Versuche verschlüsselte Verbindung zu {server_url}...')
+            ppi(f'Connecting to {server_url} (encrypted)...', None, '')
             sio.connect(server_url, transports=['websocket'], wait_timeout=3)
+            connection_status['data_feeder'] = True
             return True
         except Exception as e:
             if DEBUG:
-                ppi(f'WSS-Verbindung fehlgeschlagen: {str(e)}')
+                ppi(f'WSS-Connection failed: {str(e)}', None, '')
         
         return False
     
-    # Wiederholte Verbindungsversuche mit exponentieller Verzögerung
-    max_attempts = 10
-    attempt = 0
-    base_delay = 2
-    
-    while attempt < max_attempts:
-        attempt += 1
-        
+    # Maximal 3 Versuche mit kurzer Verzögerung
+    for attempt in range(1, 4):
         if try_connection():
-            return  # Verbindung erfolgreich
+            ppi("✓ Data-Feeder successfully connected!", None, '')
+            return True
         
-        if attempt < max_attempts:
-            delay = min(base_delay * (2 ** (attempt - 1)), 30)  # Max 30 Sekunden
-            ppi(f'Verbindungsversuch {attempt}/{max_attempts} fehlgeschlagen. Warte {delay}s...')
-            time.sleep(delay)
+        if attempt < 3:
+            ppi(f'Attempt {attempt}/3 failed, waiting 2s...', None, '')
+            time.sleep(2)
+
+    ppi("✗ Data-Feeder connection failed", None, '')
+    connection_status['data_feeder'] = False
+    return False
+
+
+def initialize_connections():
+    """
+    Initialisiert alle Verbindungen
+    Gibt True zurück wenn erfolgreich, False bei Fehler
+    """
+    global WS_WLEDS
     
-    ppe('Konnte keine Verbindung zum Data-Feeder herstellen', f'Nach {max_attempts} Versuchen aufgegeben')
+    try:
+        # Warte zuerst auf beide Verbindungen
+        wait_for_connections()
+        
+        # Jetzt versuche die Verbindungen herzustellen
+        ppi("\n" + "="*50, None, '')
+        ppi("STARTING CONNECTION...", None, '')
+        ppi("="*50 + "\n", None, '')
+        
+        connect_data_feeder_with_retry()
+        
+        for e in WLED_ENDPOINTS:
+            connect_wled(e)
+        
+        # Markiere als initialisiert
+        connection_status['initialized'] = True
+        
+        # Starte Überwachungs-Thread (nur beim ersten Mal)
+        if not connection_status['monitoring_started']:
+            monitoring_thread = threading.Thread(target=monitor_connections, daemon=True)
+            monitoring_thread.start()
+            connection_status['monitoring_started'] = True
+            ppi("\n✓ Connection monitoring active\n", None, '')
+        else:
+            ppi("\n✓ Connections restored\n", None, '')
+
+        return True
+
+    except Exception as e:
+        ppe("Connect failed: ", e)
+        return False
 
 
 
@@ -924,42 +1276,42 @@ if __name__ == "__main__":
     wled_data_manager = WLEDDataManager(WLED_ENDPOINT_PRIMARY, "wled_data.json")
     
     # Load existing data or create new
-    ppi("Initialisiere WLED Data Manager...")
+    ppi("Initializing WLED Data Manager...")
     if not wled_data_manager.load_data_from_file():
-        ppi("Erstelle neue WLED-Datendatei...")
+        ppi("Creating new WLED data file...")
     
     # Sync WLED data at startup
-    ppi("Synchronisiere WLED-Daten...")
+    ppi("Synchronizing WLED data...")
     sync_result = wled_data_manager.sync_and_save()
     
     if sync_result.get("has_changes", False):
         changes = sync_result.get("changes", {})
-        ppi("WLED-Daten aktualisiert:")
+        ppi("WLED data updated:")
         if "effects" in changes:
             effects_info = changes["effects"]
-            ppi(f"  - Effekte: {effects_info['total_new']} (vorher: {effects_info['total_old']})")
+            ppi(f"  - Effects: {effects_info['total_new']} (previous: {effects_info['total_old']})")
             if effects_info.get("added"):
-                ppi(f"    Hinzugefügt: {', '.join(effects_info['added'])}")
+                ppi(f"    Added: {', '.join(effects_info['added'])}")
             if effects_info.get("removed"):
-                ppi(f"    Entfernt: {', '.join(effects_info['removed'])}")
+                ppi(f"    Removed: {', '.join(effects_info['removed'])}")
         if "presets" in changes:
             presets_info = changes["presets"]
-            ppi(f"  - Presets: {presets_info['new_count']} (vorher: {presets_info['old_count']})")
+            ppi(f"  - Presets: {presets_info['new_count']} (previous: {presets_info['old_count']})")
         if "palettes" in changes:
             palettes_info = changes["palettes"]
-            ppi(f"  - Paletten: {palettes_info['new_count']} (vorher: {palettes_info['old_count']})")
+            ppi(f"  - Palettes: {palettes_info['new_count']} (previous: {palettes_info['old_count']})")
     else:
-        ppi("WLED-Daten sind aktuell")
+        ppi("WLED data is up to date")
     
     # Display WLED data summary
     summary = wled_data_manager.get_data_summary()
     segment_count = get_segment_count()
     ppi(f"WLED-Controller ({summary['endpoint']}):")
-    ppi(f"  - {summary['effects_count']} Effekte verfügbar")
-    ppi(f"  - {summary['presets_count']} Presets verfügbar") 
-    ppi(f"  - {summary['palettes_count']} Paletten verfügbar")
-    ppi(f"  - {segment_count} aktive Segmente erkannt")
-    
+    ppi(f"  - {summary['effects_count']} Effects available")
+    ppi(f"  - {summary['presets_count']} Presets available")
+    ppi(f"  - {summary['palettes_count']} Palettes available")
+    ppi(f"  - {segment_count} active segments detected")
+
     WLED_EFFECTS = list()
     WLED_EFFECT_ID_LIST = []
     
@@ -969,7 +1321,7 @@ if __name__ == "__main__":
         WLED_EFFECT_ID_LIST = wled_data_manager.get_effect_ids()
         if not WLED_EFFECT_ID_LIST:  # Fallback wenn keine IDs vorhanden
             WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1))
-        ppi("Verwende gespeicherte WLED-Effekte: " + str(len(WLED_EFFECTS)) + " Effekte")
+        ppi("Use cached WLED effects: " + str(len(WLED_EFFECTS)) + " effects loaded")
     except Exception as e:
         # Fallback to original method if data manager fails
         try:
@@ -977,7 +1329,7 @@ if __name__ == "__main__":
             WLED_EFFECTS = requests.get(effect_list_url, headers={'Accept': 'application/json'})
             WLED_EFFECTS = [we.lower().split('@', 1)[0] for we in WLED_EFFECTS.json()]  
             WLED_EFFECT_ID_LIST = list(range(0, len(WLED_EFFECTS) + 1)) 
-            ppi("Fallback - Effekte direkt von WLED geladen: " + str(len(WLED_EFFECTS)) + " Effekte")
+            ppi("Fallback - Effects directly loaded from WLED: " + str(len(WLED_EFFECTS)) + " effects")
         except Exception as e2:
             ppe("Failed on receiving effect-list from WLED-Endpoint", e2)
             WLED_EFFECTS = []
@@ -1016,16 +1368,41 @@ if __name__ == "__main__":
         SCORE_DARTSCORE_EFFECTS[str(ds)] = parsed_dartscore
         # ppi(parsed_score_area)
     DART_SCORE_BULL_EFFECTS = parse_effects_argument(args['dart_score_BULL_effects'])
-    try:            
-        connect_data_feeder() 
-        for e in WLED_ENDPOINTS:
-            connect_wled(e)
+    
+    # Hauptschleife mit automatischem Neustart
+    while True:
+        try:
+            # Reset restart flag vor Initialisierung
+            connection_status['restart_requested'] = False
+            
+            # Initialisiere Verbindungen
+            success = initialize_connections()
+            
+            if not success:
+                # Initialisierung fehlgeschlagen
+                ppi("Initialization failed, waiting 5s...", None, '')
+                time.sleep(5)
+                continue
+            
+            # Keep main thread alive
+            ppi("="*50, None, '')
+            ppi("APPLICATION RUNNING", None, '')
+            ppi("Press CTRL+C to exit", None, '')
+            ppi("="*50 + "\n", None, '')
 
-    except Exception as e:
-        ppe("Connect failed: ", e)
+            # Wait until restart is requested
+            while not connection_status['restart_requested']:
+                time.sleep(1)
 
-
-time.sleep(5)
+            # Restart has been requested
+            ppi("\nPreparing for reinitialization...", None, '')
+            
+        except KeyboardInterrupt:
+            ppi("\nApplication is shutting down...", None, '')
+            sys.exit(0)
+        except Exception as e:
+            ppe("Unexpected error: ", e)
+            time.sleep(5)
     
 
 

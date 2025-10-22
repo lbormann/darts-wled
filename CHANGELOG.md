@@ -1,3 +1,8 @@
+## b1.9.0
+- stability "improvements"
+- more Debug possibility
+- changed default value for BSW to off
+
 ## 1.8.3
 - new WLED Data Manager for improved performance and data caching
 - automatic multi-segment support - effects now apply to all active segments
