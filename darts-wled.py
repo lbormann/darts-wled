@@ -188,19 +188,19 @@ def wait_for_connections():
         if not data_feeder_available:
             ppi(f"[{current_time}] Check Data-Feeder ({CON})...", None, '')
             if check_data_feeder_connection():
-                ppi(f"✓ Data-Feeder connected!", None, '')
+                ppi(f"[OK] Data-Feeder connected!", None, '')
                 data_feeder_available = True
             else:
-                ppi(f"✗ Data-Feeder not available", None, '')
+                ppi(f"[ERROR] Data-Feeder not available", None, '')
         
         # Prüfe WLED
         if not wled_available:
             ppi(f"[{current_time}] Check WLED-Endpoints...", None, '')
             if check_wled_connection():
-                ppi(f"✓ WLED connected!", None, '')
+                ppi(f"[OK] WLED connected!", None, '')
                 wled_available = True
             else:
-                ppi(f"✗ WLED not available", None, '')
+                ppi(f"[ERROR] WLED not available", None, '')
         
         # Wenn beide verfügbar sind
         if data_feeder_available and wled_available:
@@ -248,13 +248,13 @@ def monitor_connections():
         if data_feeder_status and wled_status:
             if connection_lost:
                 # Verbindungen wurden wiederhergestellt!
-                ppi("✓ All connections restored!", None, '')
+                ppi("[OK] All connections restored!", None, '')
                 connection_lost = False
             continue
 
         # At least one connection is lost
         if not connection_lost:
-            ppi("⚠ Connection lost detected", None, '')
+            ppi("[WARNING] Connection lost detected", None, '')
             connection_lost = True
         
         # Prüfe ob Verbindungen wiederhergestellt werden können
@@ -264,14 +264,14 @@ def monitor_connections():
         wled_available = wled_status or check_wled_connection()
         
         if not data_feeder_available:
-            ppi(f"[{current_time}] ✗ Data-Feeder not available", None, '')
+            ppi(f"[{current_time}] [ERROR] Data-Feeder not available", None, '')
         
         if not wled_available:
-            ppi(f"[{current_time}] ✗ WLED not available", None, '')
+            ppi(f"[{current_time}] [ERROR] WLED not available", None, '')
         
         # Nur wenn BEIDE wieder verfügbar sind, starte Neuinitialisierung
         if data_feeder_available and wled_available:
-            ppi(f"[{current_time}] ✓ Both connections available! Reinitialisation...", None, '')
+            ppi(f"[{current_time}] [OK] Both connections available! Reinitialisation...", None, '')
             restart_application()
 
 
@@ -317,7 +317,7 @@ def connect_wled(we):
 
 def on_open_wled(ws):
     connection_status['wled'] = True
-    ppi(f"✓ WLED connected: {ws.url}", None, '')
+    ppi(f"[OK] WLED connected: {ws.url}", None, '')
     if WLED_SOFF is not None and WLED_SOFF == 1:
         control_wled('off', 'WLED Off becouse of Start', bss_requested=False, argument_name='-SOFF')
     else:
@@ -336,21 +336,51 @@ def on_message_wled(ws, message):
 
             # Erweiterte Fehlerbehandlung mit Endpoint-Info
             if 'error' in m:
-                ppe(f"✗ WLED Error from {ws.url}: ", m.get('error'))
+                ppe(f"[ERROR] WLED Error from {ws.url}: ", m.get('error'))
                 return
             
             if 'success' in m and m['success'] == False:
-                ppe(f"✗ WLED Command failed from {ws.url}: ", m.get('message', 'Unknown error'))
+                ppe(f"[ERROR] WLED Command failed from {ws.url}: ", m.get('message', 'Unknown error'))
                 return
             
-            # Logging für erfolgreiche State-Updates (nur im Debug-Modus)
+            # Logging für erfolgreiche State-Updates (nur im Debug-Modus) - kompakte Ausgabe
             if DEBUG and 'state' in m:
-                ppi(f"  ✓ State update from {ws.url}: {json.dumps(m['state'], indent=2)}", None, '')
+                state = m['state']
+                # Extrahiere nur die relevanten Werte
+                relevant_data = {}
+                
+                # Preset oder Playlist
+                if 'ps' in state and state['ps'] != -1:
+                    relevant_data['ps'] = state['ps']
+                if 'pl' in state and state['pl'] != -1:
+                    relevant_data['pl'] = state['pl']
+                
+                # On/Off Status
+                relevant_data['on'] = state.get('on', False)
+                
+                # Segment-Daten (nur vom ersten Segment)
+                if 'seg' in state and len(state['seg']) > 0:
+                    seg = state['seg'][0]
+                    seg_data = {}
+                    if 'fx' in seg:
+                        seg_data['fx'] = seg['fx']
+                    if 'col' in seg and len(seg['col']) > 0:
+                        seg_data['col'] = seg['col'][0]  # Nur erste Farbe
+                    if 'sx' in seg:
+                        seg_data['sx'] = seg['sx']
+                    if 'ix' in seg:
+                        seg_data['ix'] = seg['ix']
+                    if 'pal' in seg:
+                        seg_data['pal'] = seg['pal']
+                    if seg_data:
+                        relevant_data['seg'] = seg_data
+                
+                ppi(f"  [OK] State update from {ws.url}: {json.dumps(relevant_data)}", None, '')
             
             # only process incoming messages of primary wled-endpoint
             if 'info' not in m or m['info']['ip'] != WLED_ENDPOINT_PRIMARY:
                 if DEBUG:
-                    ppi(f"  ℹ Ignoring message from non-primary endpoint {ws.url}", None, '')
+                    ppi(f"  [INFO] Ignoring message from non-primary endpoint {ws.url}", None, '')
                 return
 
             if lastMessage != m:
@@ -386,7 +416,7 @@ def on_message_wled(ws, message):
                     if 'ps' in ide and ide['ps'] == str(m['state']['ps']):
                         is_idle = True
                         if DEBUG:
-                            ppi(f"  ✓ IDLE detected (Preset {ide['ps']}) from {ws.url}", None, '')
+                            ppi(f"  [OK] IDLE detected (Preset {ide['ps']}) from {ws.url}", None, '')
                     elif 'seg' in ide and ide['seg']['fx'] == str(seg['fx']) and m['state']['ps'] == -1 and m['state']['pl'] == -1:
                         is_idle = True
                         if 'col' in ide['seg'] and ide['seg']['col'][0] not in seg['col']:
@@ -399,7 +429,7 @@ def on_message_wled(ws, message):
                             is_idle = False
                         
                         if is_idle and DEBUG:
-                            ppi(f"  ✓ IDLE detected (Effect {ide['seg']['fx']}) from {ws.url}", None, '')
+                            ppi(f"  [OK] IDLE detected (Effect {ide['seg']['fx']}) from {ws.url}", None, '')
 
                     if is_idle == True:
                         waitingForIdle = False
@@ -407,7 +437,7 @@ def on_message_wled(ws, message):
                             waitingForBoardStart = False
                             sio.emit('message', 'board-start:' + str(BOARD_STOP_START))
                             if DEBUG:
-                                ppi(f"  → Sent board-start to Data-Feeder", None, '')
+                                ppi(f"  --> Sent board-start to Data-Feeder", None, '')
 
         # try:
         #     global lastMessage
@@ -566,14 +596,14 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
     
     if argument_name:
         if endpoint_count > 1:
-            ppi(f"{ptext} [{argument_name}] → {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
+            ppi(f"{ptext} [{argument_name}] --> {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
             ppi(f"  WLED Command: {str(state)}", None, '')
         else:
-            ppi(f"{ptext} [{argument_name}] → {endpoint_list[0] if endpoint_list else 'No endpoints'}", None, '')
+            ppi(f"{ptext} [{argument_name}] --> {endpoint_list[0] if endpoint_list else 'No endpoints'}", None, '')
             ppi(f"  WLED Command: {str(state)}", None, '')
     else:
         if endpoint_count > 1:
-            ppi(f"{ptext} → {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
+            ppi(f"{ptext} --> {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
             ppi(f"  WLED Command: {str(state)}", None, '')
         else:
             ppi(ptext + ' - WLED: ' + str(state))
@@ -691,7 +721,7 @@ def broadcast(data):
     # Log an welche Endpoints gesendet wird
     endpoint_urls = [ws.url for ws in WS_WLEDS]
     if DEBUG or len(WS_WLEDS) > 1:
-        ppi(f"  → Broadcasting to {len(WS_WLEDS)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
+        ppi(f"  --> Broadcasting to {len(WS_WLEDS)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
 
     results = []
     for wled_ep in WS_WLEDS:
@@ -700,7 +730,7 @@ def broadcast(data):
             result.start()
             results.append(result)
         except Exception as e:
-            ppe(f"  ✗ Failed to start thread for {wled_ep.url}: ", e)
+            ppe(f"  [ERROR] Failed to start thread for {wled_ep.url}: ", e)
             continue
     
     # Optional: Warte auf alle Threads (für besseres Logging)
@@ -715,10 +745,10 @@ def broadcast_intern(endpoint, data):
     try:
         endpoint.send(json.dumps(data))
         if DEBUG:
-            ppi(f"  ✓ Sent to {endpoint.url}: {json.dumps(data)}", None, '')
+            ppi(f"  [OK] Sent to {endpoint.url}: {json.dumps(data)}", None, '')
         return True
     except Exception as e:
-        ppe(f"  ✗ Failed to send to {endpoint.url}: ", e)
+        ppe(f"  [ERROR] Failed to send to {endpoint.url}: ", e)
         return False
 
 
@@ -1158,14 +1188,14 @@ def connect_data_feeder_with_retry():
     # Maximal 3 Versuche mit kurzer Verzögerung
     for attempt in range(1, 4):
         if try_connection():
-            ppi("✓ Data-Feeder successfully connected!", None, '')
+            ppi("[OK] Data-Feeder successfully connected!", None, '')
             return True
         
         if attempt < 3:
             ppi(f'Attempt {attempt}/3 failed, waiting 2s...', None, '')
             time.sleep(2)
 
-    ppi("✗ Data-Feeder connection failed", None, '')
+    ppi("[ERROR] Data-Feeder connection failed", None, '')
     connection_status['data_feeder'] = False
     return False
 
@@ -1201,9 +1231,9 @@ def initialize_connections():
             monitoring_thread = threading.Thread(target=monitor_connections, daemon=True)
             monitoring_thread.start()
             connection_status['monitoring_started'] = True
-            ppi("\n✓ Connection monitoring active\n", None, '')
+            ppi("\n[OK] Connection monitoring active\n", None, '')
         else:
-            ppi("\n✓ Connections restored\n", None, '')
+            ppi("\n[OK] Connections restored\n", None, '')
 
         return True
 
