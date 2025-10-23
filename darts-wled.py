@@ -8,6 +8,7 @@ import logging
 import sys
 from color_constants import colors as WLED_COLORS
 from wled_data_manager import WLEDDataManager
+from connection_diagnostics import ConnectionDiagnostics
 import time
 import requests
 import socketio
@@ -31,7 +32,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.9.1'
+VERSION = '1.9.2'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -55,6 +56,11 @@ connection_status = {
     'monitoring_started': False
 }
 
+# Reconnect tracking per endpoint
+reconnect_attempts = {}  # {endpoint_url: {'attempts': 0, 'last_attempt': timestamp, 'backoff': seconds}}
+MAX_RECONNECT_ATTEMPTS = 10
+INITIAL_BACKOFF = 3  # Sekunden
+MAX_BACKOFF = 60  # Maximal 60 Sekunden warten
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
@@ -98,6 +104,12 @@ def restart_application():
     connection_status['wled'] = False
     connection_status['initialized'] = False
     connection_status['restart_requested'] = True
+    
+    # Reset alle Reconnect-Counter
+    global reconnect_attempts
+    reconnect_attempts = {}
+    if DEBUG:
+        ppi("[DEBUG] All reconnect counters reset", None, '')
     
     time.sleep(2)  # Kurze Pause für sauberen Shutdown
 
@@ -297,10 +309,22 @@ def connect_wled(we):
     def process(*args):
         global WS_WLEDS
         websocket.enableTrace(False)
+        
+        # Validiere Endpoint - lehne leere/ungültige URLs ab
+        if not we or we.strip() == '':
+            ppi(f"[ERROR] Invalid WLED endpoint: empty or None", None, '')
+            return
+        
         # URL-Bereinigung hinzufügen
         wled_host = we.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
         # Entferne auch bereits vorhandenes /ws am Ende
         wled_host = wled_host.rstrip('/ws').rstrip('/')
+        
+        # Prüfe ob Host nach Bereinigung noch gültig ist
+        if not wled_host or wled_host.strip() == '':
+            ppi(f"[ERROR] Invalid WLED endpoint after cleanup: {we}", None, '')
+            return
+        
         wled_host = 'ws://' + wled_host + '/ws'
         
         # Prüfe ob dieser Endpoint bereits existiert und entferne alte Instanz
@@ -318,6 +342,13 @@ def connect_wled(we):
 def on_open_wled(ws):
     connection_status['wled'] = True
     ppi(f"[OK] WLED connected: {ws.url}", None, '')
+    
+    # Reset reconnect counter bei erfolgreicher Verbindung
+    if ws.url in reconnect_attempts:
+        reconnect_attempts[ws.url] = {'attempts': 0, 'last_attempt': 0, 'backoff': INITIAL_BACKOFF}
+        if DEBUG:
+            ppi(f"[DEBUG] Reconnect counter reset for {ws.url}", None, '')
+    
     if WLED_SOFF is not None and WLED_SOFF == 1:
         control_wled('off', 'WLED Off becouse of Start', bss_requested=False, argument_name='-SOFF')
     else:
@@ -544,16 +575,94 @@ def on_close_wled(ws, close_status_code, close_msg):
     try:
         connection_status['wled'] = False
         ppi("Websocket [" + str(ws.url) + "] closed! " + str(close_msg) + " - " + str(close_status_code))
-        ppi("Retry : %s" % time.ctime())
-        time.sleep(3)
+        
+        # WebSocket Close Status Code Interpretation (nur im DEBUG)
+        if DEBUG and close_status_code:
+            close_code_messages = {
+                1000: 'Normal closure',
+                1001: 'Going away - Server shutdown',
+                1006: 'Abnormal closure - Keine Close-Frame (Netzwerk/Timeout)',
+                1011: 'Internal server error'
+            }
+            if close_status_code in close_code_messages:
+                ppi(f"  Close reason: {close_code_messages[close_status_code]}", None, '')
+        
+        # Reconnect-Tracking initialisieren falls nicht vorhanden
+        if ws.url not in reconnect_attempts:
+            reconnect_attempts[ws.url] = {'attempts': 0, 'last_attempt': 0, 'backoff': INITIAL_BACKOFF}
+        
+        # Prüfe ob Max-Versuche erreicht
+        reconnect_info = reconnect_attempts[ws.url]
+        if reconnect_info['attempts'] >= MAX_RECONNECT_ATTEMPTS:
+            ppi(f"[WARNING] Maximum reconnect attempts ({MAX_RECONNECT_ATTEMPTS}) reached for {ws.url}", None, '')
+            ppi(f"[WARNING] Endpoint {ws.url} will not reconnect automatically", None, '')
+            ppi(f"[INFO] Reset via application restart or wait for monitoring thread", None, '')
+            return
+        
+        # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
+        diagnostics_failed = False
+        if DEBUG and CONNECTION_TEST == 1 and (close_status_code == 1006 or close_status_code is None):
+            ppi("\n[DEBUG] Abnormal closure detected - Running diagnostics...", None, '')
+            
+            url_parts = ws.url.replace('ws://', '').replace('wss://', '').split('/')
+            host = url_parts[0].split(':')[0]
+            port = 80
+            
+            if ':' in url_parts[0]:
+                try:
+                    port = int(url_parts[0].split(':')[1])
+                except:
+                    pass
+            
+            result = ConnectionDiagnostics.diagnose_connection(host, port, 'WLED')
+            diagnostics_failed = not result.get('reachable', False)
+        
+        # Erhöhe Reconnect-Counter und berechne Backoff
+        reconnect_info['attempts'] += 1
+        current_time = time.time()
+        
+        # Bei fehlgeschlagener Diagnose oder HTTP 503: Erhöhe Backoff exponentiell
+        if diagnostics_failed:
+            reconnect_info['backoff'] = min(reconnect_info['backoff'] * 2, MAX_BACKOFF)
+            ppi(f"[INFO] Diagnostics failed - increasing backoff to {reconnect_info['backoff']}s", None, '')
+        
+        wait_time = reconnect_info['backoff']
+        
+        ppi(f"Reconnect attempt {reconnect_info['attempts']}/{MAX_RECONNECT_ATTEMPTS} in {wait_time}s : {time.ctime()}", None, '')
+        time.sleep(wait_time)
+        
+        reconnect_info['last_attempt'] = current_time
+        
         # Extrahiere Host aus URL und entferne /ws
         original_host = ws.url.replace('ws://', '').replace('wss://', '').split('/')[0]
+        
+        # Validiere Host vor Reconnect
+        if not original_host or original_host.strip() == '':
+            ppi(f"[ERROR] Cannot reconnect - invalid host extracted from {ws.url}", None, '')
+            # Entferne defekten Endpoint aus Liste
+            WS_WLEDS = [w for w in WS_WLEDS if w.url != ws.url]
+            return
+        
         connect_wled(original_host)
     except Exception as e:
         ppe('WS-Close failed: ', e)
     
 def on_error_wled(ws, error):
     ppe('WLED Controller connection lost WS-Error ' + str(ws.url) + ' failed: ', error)
+    
+    # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
+    if DEBUG and CONNECTION_TEST == 1:
+        url_parts = ws.url.replace('ws://', '').replace('wss://', '').split('/')
+        host = url_parts[0].split(':')[0]
+        port = 80
+        
+        if ':' in url_parts[0]:
+            try:
+                port = int(url_parts[0].split(':')[1])
+            except:
+                pass
+        
+        ConnectionDiagnostics.diagnose_connection(host, port, 'WLED')
 
 def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playerIndex = None, argument_name = None):
     global waitingForIdle
@@ -717,6 +826,18 @@ def broadcast(data):
 
     # Daten für alle Segmente vorbereiten (außer Presets)
     prepared_data = prepare_data_for_segments(data)
+    
+    # Filtere geschlossene Verbindungen aus der Liste
+    active_endpoints = []
+    for ws in WS_WLEDS:
+        # Prüfe ob WebSocket noch offen ist
+        if hasattr(ws, 'sock') and ws.sock and ws.sock.connected:
+            active_endpoints.append(ws)
+        elif DEBUG:
+            ppi(f"  [INFO] Removing closed endpoint from list: {ws.url}", None, '')
+    
+    # Update die globale Liste nur mit aktiven Verbindungen
+    WS_WLEDS = active_endpoints
     
     # Log an welche Endpoints gesendet wird
     endpoint_urls = [ws.url for ws in WS_WLEDS]
@@ -1108,8 +1229,20 @@ def connect():
 
 @sio.event
 def connect_error(data):
-    if DEBUG:
-        ppe("CONNECTION TO DATA-FEEDER FAILED! " + sio.connection_url, data)
+    ppe("CONNECTION TO DATA-FEEDER FAILED! " + sio.connection_url, data)
+    
+    # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
+    if DEBUG and CONNECTION_TEST == 1:
+        # Parse Connection URL
+        url = sio.connection_url.replace('wss://', '').replace('ws://', '').replace('http://', '').replace('https://', '')
+        if ':' in url:
+            host, port_str = url.split(':')
+            port = int(port_str)
+        else:
+            host = url
+            port = 8079
+        
+        ConnectionDiagnostics.diagnose_connection(host, port, 'Data-Feeder')
 
 @sio.event
 def message(msg):
@@ -1151,6 +1284,19 @@ def disconnect():
     connection_status['data_feeder'] = False
     ppi('DISCONNECTED FROM DATA-FEEDER', None, '')
     ppi('Monitoring-Thread will check for reconnection...', None, '')
+    
+    # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
+    if DEBUG and CONNECTION_TEST == 1:
+        # Parse Connection URL
+        url = sio.connection_url.replace('wss://', '').replace('ws://', '').replace('http://', '').replace('https://', '')
+        if ':' in url:
+            host, port_str = url.split(':')
+            port = int(port_str)
+        else:
+            host = url
+            port = 8079
+        
+        ConnectionDiagnostics.diagnose_connection(host, port, 'Data-Feeder')
 
 
 def connect_data_feeder_with_retry():
@@ -1195,8 +1341,21 @@ def connect_data_feeder_with_retry():
             ppi(f'Attempt {attempt}/3 failed, waiting 2s...', None, '')
             time.sleep(2)
 
-    ppi("[ERROR] Data-Feeder connection failed", None, '')
+    ppi("[ERROR] Data-Feeder connection failed after 3 attempts", None, '')
     connection_status['data_feeder'] = False
+    
+    # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
+    if DEBUG and CONNECTION_TEST == 1:
+        server_host = CON.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '')
+        if ':' in server_host:
+            host, port_str = server_host.split(':')
+            port = int(port_str)
+        else:
+            host = server_host
+            port = 8079
+        
+        ConnectionDiagnostics.diagnose_connection(host, port, 'Data-Feeder')
+    
     return False
 
 
@@ -1274,6 +1433,7 @@ if __name__ == "__main__":
         area = str(a)
         ap.add_argument("-A" + area, "--score_area_" + area + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition for score-area")
     ap.add_argument("-DEB", "--debug", type=int, choices=range(0, 2), default=False, required=False, help="If '1', the application will output additional information")
+    ap.add_argument("-CT", "--connection_test", type=int, choices=range(0, 2), default=False, required=False, help="If '1', performs connection diagnostics for all endpoints and exits")
     ap.add_argument("-BSW", "--board_stop_after_win", type=int, choices=range(0, 2), default=False, required=False, help="Let the board stop after winning the match check it to activate the board stop")
     ap.add_argument("-BSE", "--board_stop_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Board is stopped")
     ap.add_argument("-TOE", "--takeout_effect", default=None, required=False, nargs='*', help="WLED effect-definition when Takeout will be performed")
@@ -1353,9 +1513,16 @@ if __name__ == "__main__":
     ppi('\r\n', None, '')
 
     DEBUG = args['debug']
+    CONNECTION_TEST = args['connection_test']
     CON = args['connection']
-    WLED_ENDPOINTS = list(args['wled_endpoints'])
-    WLED_ENDPOINT_PRIMARY = args['wled_endpoints'][0]
+    # Filtere leere/ungültige WLED Endpoints heraus
+    WLED_ENDPOINTS = [ep for ep in args['wled_endpoints'] if ep and ep.strip() != '']
+    
+    if not WLED_ENDPOINTS:
+        ppi('[ERROR] No valid WLED endpoints configured!', None, '')
+        sys.exit(1)
+    
+    WLED_ENDPOINT_PRIMARY = WLED_ENDPOINTS[0]
     EFFECT_DURATION = args['effect_duration']
     BOARD_STOP_START = args['board_stop_start']
     BOARD_STOP_AFTER_WIN = args['board_stop_after_win']
@@ -1363,6 +1530,30 @@ if __name__ == "__main__":
     HIGH_FINISH_ON = args['high_finish_on']
     WLED_OFF = args['wled_off']
     WLED_SOFF = args['wled_off_at_start']
+    
+    # Connection Test Mode - Teste alle Verbindungen und beende
+    if CONNECTION_TEST == 1:
+        ppi('\r\n', None, '')
+        ppi('##########################################', None, '')
+        ppi('   CONNECTION TEST MODE ACTIVATED', None, '')
+        ppi('##########################################', None, '')
+        ppi('\r\n', None, '')
+        
+        # Teste alle Verbindungen
+        results = ConnectionDiagnostics.test_all_connections(WLED_ENDPOINTS, CON)
+        
+        # Ausgabe Testergebnis
+        ppi('\r\n', None, '')
+        ppi('##########################################', None, '')
+        ppi('   CONNECTION TEST COMPLETED', None, '')
+        all_ok = all(r[2]['reachable'] for r in results)
+        if all_ok:
+            ppi('   [OK] All connections reachable', None, '')
+        else:
+            ppi('   [WARNING] Some connections failed', None, '')
+            ppi('   --> Application continues anyway', None, '')
+        ppi('##########################################', None, '')
+        ppi('\r\n', None, '')
     
     # Initialize WLED Data Manager
     wled_data_manager = WLEDDataManager(WLED_ENDPOINT_PRIMARY, "wled_data.json")

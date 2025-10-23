@@ -2,6 +2,10 @@
 - reconnect behaviour changes. 
        - improved stability
 
+## b1.9.1
+- reconnect behaviour changes. 
+       - improved stability
+
 ## b1.9.0
 - stability "improvements"
 - more Debug possibility
