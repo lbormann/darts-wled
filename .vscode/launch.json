@@ -12,7 +12,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "-WEPS=192.168.1.20",
+                "-WEPS","192.168.1.20",
+                "192.168.1.141",
                 "-HF=ps|5",
                 "-IDE=ps|2",
                 "-G=ps|3",

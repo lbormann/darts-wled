@@ -31,7 +31,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.9.0'
+VERSION = '1.9.1'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -136,15 +136,24 @@ def check_wled_connection():
     """
     Prüft ob mindestens ein WLED-Endpoint erreichbar ist
     """
-    for endpoint in WLED_ENDPOINTS:
-        try:
-            clean_host = endpoint.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
-            test_url = f'http://{clean_host}/json/state'
-            response = requests.get(test_url, timeout=2)
-            if response.status_code == 200:
-                return True
-        except:
-            continue
+    # for endpoint in WLED_ENDPOINTS:
+    #     try:
+    #         clean_host = endpoint.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+    #         test_url = f'http://{clean_host}/json/state'
+    #         response = requests.get(test_url, timeout=6)
+    #         if response.status_code == 200:
+    #             return True
+    #     except:
+    #         continue
+    # return False
+    try:
+        clean_host = WLED_ENDPOINT_PRIMARY.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        test_url = f'http://{clean_host}/json/state'
+        response = requests.get(test_url, timeout=6)
+        if response.status_code == 200:
+            return True
+    except:
+        pass
     return False
 
 def wait_for_connections():
@@ -294,6 +303,9 @@ def connect_wled(we):
         wled_host = wled_host.rstrip('/ws').rstrip('/')
         wled_host = 'ws://' + wled_host + '/ws'
         
+        # Prüfe ob dieser Endpoint bereits existiert und entferne alte Instanz
+        WS_WLEDS = [ws for ws in WS_WLEDS if ws.url != wled_host]
+        
         ws = websocket.WebSocketApp(wled_host,
                                     on_open = on_open_wled,
                                     on_message = on_message_wled,
@@ -322,17 +334,23 @@ def on_message_wled(ws, message):
 
             m = json.loads(message)
 
-            # Fehlerbehandlung hinzufügen
+            # Erweiterte Fehlerbehandlung mit Endpoint-Info
             if 'error' in m:
-                ppe(f"WLED Error from {ws.url}: ", m.get('error'))
+                ppe(f"✗ WLED Error from {ws.url}: ", m.get('error'))
                 return
             
             if 'success' in m and m['success'] == False:
-                ppe(f"WLED Command failed {ws.url}: ", m.get('message', 'Unknown error'))
+                ppe(f"✗ WLED Command failed from {ws.url}: ", m.get('message', 'Unknown error'))
                 return
+            
+            # Logging für erfolgreiche State-Updates (nur im Debug-Modus)
+            if DEBUG and 'state' in m:
+                ppi(f"  ✓ State update from {ws.url}: {json.dumps(m['state'], indent=2)}", None, '')
             
             # only process incoming messages of primary wled-endpoint
             if 'info' not in m or m['info']['ip'] != WLED_ENDPOINT_PRIMARY:
+                if DEBUG:
+                    ppi(f"  ℹ Ignoring message from non-primary endpoint {ws.url}", None, '')
                 return
 
             if lastMessage != m:
@@ -367,6 +385,8 @@ def on_message_wled(ws, message):
                     is_idle = False
                     if 'ps' in ide and ide['ps'] == str(m['state']['ps']):
                         is_idle = True
+                        if DEBUG:
+                            ppi(f"  ✓ IDLE detected (Preset {ide['ps']}) from {ws.url}", None, '')
                     elif 'seg' in ide and ide['seg']['fx'] == str(seg['fx']) and m['state']['ps'] == -1 and m['state']['pl'] == -1:
                         is_idle = True
                         if 'col' in ide['seg'] and ide['seg']['col'][0] not in seg['col']:
@@ -377,12 +397,17 @@ def on_message_wled(ws, message):
                             is_idle = False
                         if 'pal' in ide['seg'] and ide['seg']['pal'] != str(seg['pal']):
                             is_idle = False
+                        
+                        if is_idle and DEBUG:
+                            ppi(f"  ✓ IDLE detected (Effect {ide['seg']['fx']}) from {ws.url}", None, '')
 
                     if is_idle == True:
                         waitingForIdle = False
                         if waitingForBoardStart == True and sio.connected:
                             waitingForBoardStart = False
                             sio.emit('message', 'board-start:' + str(BOARD_STOP_START))
+                            if DEBUG:
+                                ppi(f"  → Sent board-start to Data-Feeder", None, '')
 
         # try:
         #     global lastMessage
@@ -481,7 +506,7 @@ def on_message_wled(ws, message):
 
 
         except Exception as e:
-            ppe('WS-Message failed: ', e)
+            ppe(f'WS-Message processing failed for {ws.url}: ', e)
 
     threading.Thread(target=process).start()
 
@@ -535,11 +560,23 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
         state.update({'on': True})
         broadcast(state)
 
-    # Erweiterte Ausgabe mit Argument-Name
+    # Erweiterte Ausgabe mit Argument-Name und Endpoint-Info
+    endpoint_count = len(WS_WLEDS)
+    endpoint_list = [ws.url for ws in WS_WLEDS]
+    
     if argument_name:
-        ppi(f"{ptext} [{argument_name}] - WLED: {str(state)}", None, '')
+        if endpoint_count > 1:
+            ppi(f"{ptext} [{argument_name}] → {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
+            ppi(f"  WLED Command: {str(state)}", None, '')
+        else:
+            ppi(f"{ptext} [{argument_name}] → {endpoint_list[0] if endpoint_list else 'No endpoints'}", None, '')
+            ppi(f"  WLED Command: {str(state)}", None, '')
     else:
-        ppi(ptext + ' - WLED: ' + str(state))
+        if endpoint_count > 1:
+            ppi(f"{ptext} → {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
+            ppi(f"  WLED Command: {str(state)}", None, '')
+        else:
+            ppi(ptext + ' - WLED: ' + str(state))
 
     if bss_requested == True:
         waitingForIdle = True
@@ -643,23 +680,46 @@ def prepare_data_for_segments(data):
         return data
 
 def broadcast(data):
+    """
+    Sendet Daten an alle WLED-Endpoints mit detailliertem Logging
+    """
     global WS_WLEDS
 
     # Daten für alle Segmente vorbereiten (außer Presets)
     prepared_data = prepare_data_for_segments(data)
+    
+    # Log an welche Endpoints gesendet wird
+    endpoint_urls = [ws.url for ws in WS_WLEDS]
+    if DEBUG or len(WS_WLEDS) > 1:
+        ppi(f"  → Broadcasting to {len(WS_WLEDS)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
 
+    results = []
     for wled_ep in WS_WLEDS:
         try:
-            # ppi("Broadcasting to " + str(wled_ep))
-            threading.Thread(target=broadcast_intern, args=(wled_ep, prepared_data)).start()
-        except:  
+            result = threading.Thread(target=broadcast_intern, args=(wled_ep, prepared_data))
+            result.start()
+            results.append(result)
+        except Exception as e:
+            ppe(f"  ✗ Failed to start thread for {wled_ep.url}: ", e)
             continue
+    
+    # Optional: Warte auf alle Threads (für besseres Logging)
+    if DEBUG:
+        for thread in results:
+            thread.join(timeout=1)
 
 def broadcast_intern(endpoint, data):
+    """
+    Sendet Daten an einen WLED-Endpoint und loggt das Ergebnis
+    """
     try:
         endpoint.send(json.dumps(data))
-    except:  
-        return
+        if DEBUG:
+            ppi(f"  ✓ Sent to {endpoint.url}: {json.dumps(data)}", None, '')
+        return True
+    except Exception as e:
+        ppe(f"  ✗ Failed to send to {endpoint.url}: ", e)
+        return False
 
 
 
@@ -1118,8 +1178,10 @@ def initialize_connections():
     global WS_WLEDS
     
     try:
-        # Warte zuerst auf beide Verbindungen
-        wait_for_connections()
+        # Nur beim Restart auf Verbindungen warten
+        # Beim ersten Start überspringen wir den Check
+        if connection_status['initialized']:
+            wait_for_connections()
         
         # Jetzt versuche die Verbindungen herzustellen
         ppi("\n" + "="*50, None, '')
