@@ -639,8 +639,7 @@ def on_close_wled(ws, close_status_code, close_msg):
         # Validiere Host vor Reconnect
         if not original_host or original_host.strip() == '':
             ppi(f"[ERROR] Cannot reconnect - invalid host extracted from {ws.url}", None, '')
-            # Entferne defekten Endpoint aus Liste
-            WS_WLEDS = [w for w in WS_WLEDS if w.url != ws.url]
+            ppi(f"[INFO] Endpoint stays in list but won't reconnect until application restart", None, '')
             return
         
         connect_wled(original_host)
@@ -827,25 +826,26 @@ def broadcast(data):
     # Daten für alle Segmente vorbereiten (außer Presets)
     prepared_data = prepare_data_for_segments(data)
     
-    # Filtere geschlossene Verbindungen aus der Liste
+    # Sammle nur aktive Verbindungen zum Senden (aber behalte alle in Liste)
     active_endpoints = []
     for ws in WS_WLEDS:
         # Prüfe ob WebSocket noch offen ist
         if hasattr(ws, 'sock') and ws.sock and ws.sock.connected:
             active_endpoints.append(ws)
         elif DEBUG:
-            ppi(f"  [INFO] Removing closed endpoint from list: {ws.url}", None, '')
-    
-    # Update die globale Liste nur mit aktiven Verbindungen
-    WS_WLEDS = active_endpoints
+            ppi(f"  [INFO] Skipping closed endpoint (will reconnect later): {ws.url}", None, '')
     
     # Log an welche Endpoints gesendet wird
-    endpoint_urls = [ws.url for ws in WS_WLEDS]
-    if DEBUG or len(WS_WLEDS) > 1:
-        ppi(f"  --> Broadcasting to {len(WS_WLEDS)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
+    if len(active_endpoints) > 0:
+        endpoint_urls = [ws.url for ws in active_endpoints]
+        if DEBUG or len(active_endpoints) > 1:
+            ppi(f"  --> Broadcasting to {len(active_endpoints)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
+    else:
+        ppi(f"  [WARNING] No active endpoints available for broadcast", None, '')
+        return
 
     results = []
-    for wled_ep in WS_WLEDS:
+    for wled_ep in active_endpoints:
         try:
             result = threading.Thread(target=broadcast_intern, args=(wled_ep, prepared_data))
             result.start()
@@ -1222,8 +1222,7 @@ def connect():
         'version': VERSION,
         'settings': WLED_SETTINGS_ARGS
     }
-    if sio.connected:
-        sio.emit('message', WLED_info)
+    sio.emit('message', WLED_info)
     if WLED_SOFF is not None and WLED_SOFF == 1:
         control_wled('off', 'WLED Off becouse of Start', bss_requested=False, argument_name='-SOFF')
 
@@ -1312,7 +1311,7 @@ def connect_data_feeder_with_retry():
             server_url = 'ws://' + server_host
             ppi(f'Verbinde zu {server_url}...', None, '')
             sio.connect(server_url, transports=['websocket'], wait_timeout=3)
-            connection_status['data_feeder'] = True
+            # Status wird in @sio.event connect() gesetzt
             return True
         except Exception as e:
             if DEBUG:
@@ -1323,7 +1322,7 @@ def connect_data_feeder_with_retry():
             server_url = 'wss://' + server_host
             ppi(f'Connecting to {server_url} (encrypted)...', None, '')
             sio.connect(server_url, transports=['websocket'], wait_timeout=3)
-            connection_status['data_feeder'] = True
+            # Status wird in @sio.event connect() gesetzt
             return True
         except Exception as e:
             if DEBUG:
@@ -1449,6 +1448,7 @@ if __name__ == "__main__":
 
     WLED_SETTINGS_ARGS = {
         'connection': args['connection'],
+        'wled_endpoints': args['wled_endpoints'],
         'debug': args['debug'],
         'effect_duration': args['effect_duration'],
         'board_stop_start': args['board_stop_start'],
