@@ -470,102 +470,6 @@ def on_message_wled(ws, message):
                             if DEBUG:
                                 ppi(f"  --> Sent board-start to Data-Feeder", None, '')
 
-        # try:
-        #     global lastMessage
-        #     global waitingForIdle
-        #     global waitingForBoardStart
-        #     global idleIndexGlobal
-        #     global playerIndexGlobal
-
-        #     m = json.loads(message)
-
-        #     # Fehlerbehandlung hinzufügen
-        #     if 'error' in m:
-        #         ppe(f"WLED Error from {ws.url}: ", m.get('error'))
-        #         return
-            
-        #     if 'success' in m and m['success'] == False:
-        #         ppe(f"WLED Command failed {ws.url}: ", m.get('message', 'Unknown error'))
-        #         return
-            
-        #     # only process incoming messages of primary wled-endpoint
-        #     if 'info' not in m or m['info']['ip'] != WLED_ENDPOINT_PRIMARY:
-        #         return
-
-        #     if lastMessage != m:
-        #         lastMessage = m
-
-        #         # ppi(json.dumps(m, indent = 4, sort_keys = True))
-
-        #         # if 'state' in m :
-        #         #     ppi('server ps: ' + str(m['state']['ps']))
-        #         #     ppi('server pl: ' + str(m['state']['pl']))
-        #         #     ppi('server fx: ' + str(m['state']['seg'][0]['fx']))
-                    
-        #         if 'state' in m and waitingForIdle == True: 
-
-        #             # [({'seg': {'fx': '0', 'col': [[250, 250, 210, 0]]}, 'on': True}, DURATION)]
-                    
-        #             # if idleIndexGlobal == "0" and IDLE_EFFECT is not None:
-        #             #     (ide, duration) = IDLE_EFFECT[0]
-        #             # elif idleIndexGlobal == "1" and IDLE_EFFECT2 is not None:
-        #             #     (ide, duration) = IDLE_EFFECT2[0]
-        #             # elif idleIndexGlobal == "2" and IDLE_EFFECT3 is not None:
-        #             #     (ide, duration) = IDLE_EFFECT3[0]
-        #             # elif idleIndexGlobal == "3" and IDLE_EFFECT4 is not None:
-        #             #     (ide, duration) = IDLE_EFFECT4[0]
-        #             # elif idleIndexGlobal == "4" and IDLE_EFFECT5 is not None:
-        #             #     (ide, duration) = IDLE_EFFECT5[0]
-        #             # elif idleIndexGlobal == "5" and IDLE_EFFECT6 is not None:
-        #             #     (ide, duration) = IDLE_EFFECT6[0]
-        #             # else:
-        #             #     (ide, duration) = IDLE_EFFECT[0]
-        #             idle_effect_list = None
-        #             if idleIndexGlobal == "0" and IDLE_EFFECT is not None:
-        #                 idle_effect_list = IDLE_EFFECT
-        #             elif idleIndexGlobal == "1" and IDLE_EFFECT2 is not None:
-        #                 idle_effect_list = IDLE_EFFECT2
-        #             elif idleIndexGlobal == "2" and IDLE_EFFECT3 is not None:
-        #                 idle_effect_list = IDLE_EFFECT3
-        #             elif idleIndexGlobal == "3" and IDLE_EFFECT4 is not None:
-        #                 idle_effect_list = IDLE_EFFECT4
-        #             elif idleIndexGlobal == "4" and IDLE_EFFECT5 is not None:
-        #                 idle_effect_list = IDLE_EFFECT5
-        #             elif idleIndexGlobal == "5" and IDLE_EFFECT6 is not None:
-        #                 idle_effect_list = IDLE_EFFECT6
-        #             else:
-        #                 idle_effect_list = IDLE_EFFECT
-                    
-        #             if idle_effect_list is None:
-        #                 return
-                    
-        #             # get_state wählt ein zufälliges Element aus der Liste
-        #             (ide, duration) = get_state(idle_effect_list)
-
-        #             seg = m['state']['seg'][0]
-
-        #             is_idle = False
-        #             if 'ps' in ide and ide['ps'] == str(m['state']['ps']):
-        #                 is_idle = True
-        #             elif ide['seg']['fx'] == str(seg['fx']) and m['state']['ps'] == -1 and m['state']['pl'] == -1:
-        #                 is_idle = True
-        #                 if 'col' in ide['seg'] and ide['seg']['col'][0] not in seg['col']:
-        #                     is_idle = False
-        #                 if 'sx' in ide['seg'] and ide['seg']['sx'] != str(seg['sx']):
-        #                     is_idle = False
-        #                 if 'ix' in ide['seg'] and ide['seg']['ix'] != str(seg['ix']):
-        #                     is_idle = False
-        #                 if 'pal' in ide['seg'] and ide['seg']['pal'] != str(seg['pal']):
-        #                     is_idle = False
-
-        #             if is_idle == True:
-        #                 # ppi('Back to IDLE')
-        #                 waitingForIdle = False
-        #                 if waitingForBoardStart == True and sio.connected:
-        #                     waitingForBoardStart = False
-        #                     sio.emit('message', 'board-start:' + str(BOARD_STOP_START))
-
-
         except Exception as e:
             ppe(f'WS-Message processing failed for {ws.url}: ', e)
 
@@ -766,51 +670,160 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
 
 def get_segment_count():
     """
-    Ermittelt die Anzahl der aktiven Segmente vom WLED-Controller
+    Ermittelt die Anzahl der aktiven Segmente vom WLED-Controller (Live-Abfrage)
     """
     try:
-        if wled_data_manager:
-            return wled_data_manager.get_segment_count()
-        else:
-            # Fallback: Direkte Abfrage vom Controller
-            state_url = f'http://{WLED_ENDPOINT_PRIMARY}/json/state'
-            response = requests.get(state_url, timeout=2)
-            if response.status_code == 200:
-                state_data = response.json()
-                if 'seg' in state_data:
-                    return len(state_data['seg'])
+        # Immer Live-Abfrage vom Controller für aktuelle Segment-Anzahl
+        clean_host = WLED_ENDPOINT_PRIMARY.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        state_url = f'http://{clean_host}/json/state'
+        response = requests.get(state_url, timeout=2)
+        if response.status_code == 200:
+            state_data = response.json()
+            if 'seg' in state_data and isinstance(state_data['seg'], list):
+                segment_count = len(state_data['seg'])
+                if DEBUG:
+                    ppi(f"  [DEBUG] Current segment count from controller: {segment_count}", None, '')
+                return segment_count
     except Exception as e:
-        ppe("Error while determining segment count: ", e)
+        if DEBUG:
+            ppe("Error while determining segment count: ", e)
     
     return 1  # Fallback auf 1 Segment
 
-def prepare_data_for_segments(data):
+def get_led_count():
     """
-    Bereitet die Daten für alle Segmente vor, außer bei Presets
+    Ermittelt die Anzahl der LEDs vom WLED-Controller
     """
     try:
+        if wled_data_manager:
+            # Versuche aus cached data zu holen
+            info = wled_data_manager.wled_data.get('info', {})
+            leds = info.get('leds', {})
+            count = leds.get('count', 0)
+            if count > 0:
+                if DEBUG:
+                    ppi(f"  [DEBUG] LED count from cache: {count}", None, '')
+                return count
+        
+        # Fallback: Direkte Abfrage vom Controller
+        clean_host = WLED_ENDPOINT_PRIMARY.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        info_url = f'http://{clean_host}/json/info'
+        response = requests.get(info_url, timeout=2)
+        if response.status_code == 200:
+            info_data = response.json()
+            if 'leds' in info_data and 'count' in info_data['leds']:
+                count = info_data['leds']['count']
+                if DEBUG:
+                    ppi(f"  [DEBUG] LED count from HTTP request: {count}", None, '')
+                return count
+    except Exception as e:
+        if DEBUG:
+            ppe("Error while determining LED count: ", e)
+    
+    return 0  # Fallback - WLED verwendet dann seine Default-Einstellung
+
+def prepare_data_for_segments(data):
+    # Bereitet die Daten vor und setzt Segmente auf Default zurück (außer bei Presets)
+    try:
+        if DEBUG:
+            ppi(f"  [DEBUG] prepare_data_for_segments INPUT: {json.dumps(data)}", None, '')
+        
         # Prüfen ob es sich um ein Preset handelt
         if 'ps' in data:
             # Presets werden unverändert verwendet
+            if DEBUG:
+                ppi(f"  [DEBUG] Preset detected, returning unchanged", None, '')
             return data
-        
-        # Für Effekte und Farben: auf alle Segmente anwenden
         if 'seg' in data:
-            segment_count = get_segment_count()
-            if segment_count > 1:
-                # Erstelle Daten für alle Segmente
-                segments_data = []
-                original_seg = data['seg']
+            seg_data = data['seg']
+            
+            # Hole die LED-Anzahl und aktuelle Segment-Anzahl vom Controller
+            led_count = get_led_count()
+            current_segment_count = get_segment_count()
+            
+            # Wenn LED-Count nicht ermittelt werden kann, keine Modifikation
+            if led_count == 0:
+                if DEBUG:
+                    ppi(f"  [WARNING] LED count is 0, skipping segment modification", None, '')
+                return data
+            if isinstance(seg_data, dict):
+                new_segment = {
+                    'id': 0,
+                    'start': 0,
+                    'stop': led_count,
+                    # Layout-Felder explizit auf Default-Werte setzen
+                    'grp': 1,    # Grouping: 1 = keine Gruppierung
+                    'spc': 0,    # Spacing: 0 = kein Abstand
+                    'of': 0      # Offset: 0 = kein Offset
+                }
                 
-                for i in range(segment_count):
-                    segment_data = original_seg.copy()
-                    segment_data['id'] = i  # Segment-ID setzen
-                    segments_data.append(segment_data)
-                
-                # Ersetze einzelnes Segment durch Array aller Segmente
+                # Kopiere nur die Effekt-spezifischen Felder (keine Layout-Felder!)
+                effect_fields = ['fx', 'sx', 'ix', 'pal', 'col', 'c1', 'c2', 'c3', 'sel', 'rev', 'mi', 'o1', 'o2', 'o3', 'si', 'm12']
+                for field in effect_fields:
+                    if field in seg_data:
+                        new_segment[field] = seg_data[field]
                 modified_data = data.copy()
-                modified_data['seg'] = segments_data
+                segments = [new_segment]
+                
+                # Deaktiviere alle anderen Segmente (ID 1 bis current_segment_count-1)
+                if current_segment_count > 1:
+                    for seg_id in range(1, current_segment_count):
+                        segments.append({
+                            'id': seg_id,
+                            'stop': 0  # stop=0 deaktiviert das Segment
+                        })
+                    if DEBUG:
+                        ppi(f"  [INFO] Deactivating {current_segment_count - 1} additional segment(s)", None, '')
+                
+                modified_data['seg'] = segments
+                modified_data['mainseg'] = 0
+                
+                if DEBUG:
+                    ppi(f"  [INFO] Created new segment (0-{led_count} LEDs)", None, '')
+                    ppi(f"  [DEBUG] prepare_data_for_segments OUTPUT: {json.dumps(modified_data)}", None, '')
+                
                 return modified_data
+            elif isinstance(seg_data, list):
+                # Erstelle ein NEUES Segment basierend auf dem ersten Element
+                if len(seg_data) > 0 and isinstance(seg_data[0], dict):
+                    new_segment = {
+                        'id': 0,
+                        'start': 0,
+                        'stop': led_count,
+                        # Layout-Felder explizit auf Default-Werte setzen
+                        'grp': 1,    # Grouping: 1 = keine Gruppierung
+                        'spc': 0,    # Spacing: 0 = kein Abstand
+                        'of': 0      # Offset: 0 = kein Offset
+                    }
+                    
+                    # Kopiere nur die Effekt-spezifischen Felder (keine Layout-Felder!)
+                    effect_fields = ['fx', 'sx', 'ix', 'pal', 'col', 'c1', 'c2', 'c3', 'sel', 'rev', 'mi', 'o1', 'o2', 'o3', 'si', 'm12']
+                    for field in effect_fields:
+                        if field in seg_data[0]:
+                            new_segment[field] = seg_data[0][field]
+                    
+                    # Erstelle neues Daten-Objekt mit nur einem Segment
+                    modified_data = data.copy()
+                    segments = [new_segment]
+                    
+                    # Deaktiviere alle anderen Segmente (ID 1 bis current_segment_count-1)
+                    if current_segment_count > 1:
+                        for seg_id in range(1, current_segment_count):
+                            segments.append({
+                                'id': seg_id,
+                                'stop': 0  # stop=0 deaktiviert das Segment
+                            })
+                        if DEBUG:
+                            ppi(f"  [INFO] Deactivating {current_segment_count - 1} additional segment(s)", None, '')
+                    
+                    modified_data['seg'] = segments
+                    modified_data['mainseg'] = 0
+                    
+                    if DEBUG:
+                        ppi(f"  [INFO] Created new segment (0-{led_count} LEDs)", None, '')
+                        ppi(f"  [DEBUG] prepare_data_for_segments OUTPUT: {json.dumps(modified_data)}", None, '')
+                    
+                    return modified_data
         
         return data
     except Exception as e:
@@ -987,7 +1000,7 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
             parsed_list.append(({"seg": seg}, custom_duration))
 
         except Exception as e:
-            ppe("Failed to parse event-configuration: ", e)
+            ppe(f"Failed to parse event-configuration '{effect}': ", e)
             continue
 
     return parsed_list   
@@ -1025,7 +1038,7 @@ def process_variant_x01(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         
-        if SCORE_EFFECTS[val] is not None:
+        if SCORE_EFFECTS[val] is not None and len(SCORE_EFFECTS[val]) > 0:
             control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
             # ppi(SCORE_EFFECTS[val])
         else:
