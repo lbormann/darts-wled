@@ -32,7 +32,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.9.2'
+VERSION = '1.9.3'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -57,10 +57,14 @@ connection_status = {
 }
 
 # Reconnect tracking per endpoint
-reconnect_attempts = {}  # {endpoint_url: {'attempts': 0, 'last_attempt': timestamp, 'backoff': seconds}}
+reconnect_attempts = {}  # {endpoint_url: {'attempts': 0, 'last_attempt': timestamp, 'backoff': seconds, 'reconnecting': False}}
+reconnect_lock = threading.Lock()  # Lock für Thread-sichere Reconnect-Prüfung
 MAX_RECONNECT_ATTEMPTS = 10
 INITIAL_BACKOFF = 3  # Sekunden
 MAX_BACKOFF = 60  # Maximal 60 Sekunden warten
+
+# LED-Count pro Endpoint
+led_counts = {}  # {endpoint_url: led_count}
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
@@ -92,12 +96,23 @@ def restart_application():
         global WS_WLEDS
         for ws in WS_WLEDS:
             try:
-                ws.close()
-            except:
-                pass
+                if DEBUG:
+                    ppi(f"[DEBUG] Closing WebSocket {ws.url}", None, '')
+                ws.close()  # Schließt die Verbindung und beendet run_forever()
+            except Exception as e:
+                if DEBUG:
+                    ppi(f"[DEBUG] Error closing {ws.url}: {str(e)}", None, '')
+        
+        # Kurze Pause damit run_forever() Threads beenden können
+        time.sleep(1)
+        
         WS_WLEDS = list()  # Liste leeren
-    except:
-        pass
+        
+        if DEBUG:
+            ppi(f"[DEBUG] All WebSocket connections closed", None, '')
+    except Exception as e:
+        if DEBUG:
+            ppe("[DEBUG] Error during WebSocket cleanup: ", e)
     
     # Reset Status
     connection_status['data_feeder'] = False
@@ -327,17 +342,44 @@ def connect_wled(we):
         
         wled_host = 'ws://' + wled_host + '/ws'
         
-        # Prüfe ob dieser Endpoint bereits existiert und entferne alte Instanz
-        WS_WLEDS = [ws for ws in WS_WLEDS if ws.url != wled_host]
+        # NEU: Finde und schließe alte Instanz für diesen Endpoint
+        old_ws_list = []
+        for ws in WS_WLEDS:
+            if ws.url == wled_host:
+                old_ws_list.append(ws)
         
+        if old_ws_list:
+            for old_ws in old_ws_list:
+                try:
+                    if DEBUG:
+                        ppi(f"[DEBUG] Closing old WebSocket instance for {wled_host}", None, '')
+                    old_ws.close()  # Schließt WebSocket und beendet run_forever()
+                except Exception as e:
+                    if DEBUG:
+                        ppi(f"[DEBUG] Error closing old WebSocket: {str(e)}", None, '')
+            
+            # Entferne aus Liste - wichtig: Liste in-place modifizieren!
+            WS_WLEDS[:] = [ws for ws in WS_WLEDS if ws.url != wled_host]
+            
+            if DEBUG:
+                ppi(f"[DEBUG] Removed {len(old_ws_list)} old WebSocket instance(s)", None, '')
+        
+        # Erstelle neue WebSocket-Instanz
         ws = websocket.WebSocketApp(wled_host,
                                     on_open = on_open_wled,
                                     on_message = on_message_wled,
                                     on_error = on_error_wled,
                                     on_close = on_close_wled)
         WS_WLEDS.append(ws)
+        
+        if DEBUG:
+            ppi(f"[DEBUG] Starting new WebSocket thread for {wled_host} (Total WS: {len(WS_WLEDS)})", None, '')
+        
         ws.run_forever()
-    threading.Thread(target=process).start()
+    
+    # Thread mit Namen für bessere Identifikation und daemon=True
+    thread_name = f"WLED-{we.replace('ws://', '').split('/')[0]}"
+    threading.Thread(target=process, name=thread_name, daemon=True).start()
 
 def on_open_wled(ws):
     connection_status['wled'] = True
@@ -345,9 +387,14 @@ def on_open_wled(ws):
     
     # Reset reconnect counter bei erfolgreicher Verbindung
     if ws.url in reconnect_attempts:
-        reconnect_attempts[ws.url] = {'attempts': 0, 'last_attempt': 0, 'backoff': INITIAL_BACKOFF}
+        reconnect_attempts[ws.url] = {'attempts': 0, 'last_attempt': 0, 'backoff': INITIAL_BACKOFF, 'reconnecting': False}
         if DEBUG:
             ppi(f"[DEBUG] Reconnect counter reset for {ws.url}", None, '')
+    
+    # Ermittle und cache LED-Anzahl für diesen Endpoint
+    led_count = get_led_count(ws.url)
+    if led_count > 0 and DEBUG:
+        ppi(f"[DEBUG] Cached LED count for {ws.url}: {led_count}", None, '')
     
     if WLED_SOFF is not None and WLED_SOFF == 1:
         control_wled('off', 'WLED Off becouse of Start', bss_requested=False, argument_name='-SOFF')
@@ -493,7 +540,17 @@ def on_close_wled(ws, close_status_code, close_msg):
         
         # Reconnect-Tracking initialisieren falls nicht vorhanden
         if ws.url not in reconnect_attempts:
-            reconnect_attempts[ws.url] = {'attempts': 0, 'last_attempt': 0, 'backoff': INITIAL_BACKOFF}
+            reconnect_attempts[ws.url] = {'attempts': 0, 'last_attempt': 0, 'backoff': INITIAL_BACKOFF, 'reconnecting': False}
+        
+        # Thread-sichere Prüfung ob bereits ein Reconnect läuft
+        with reconnect_lock:
+            if reconnect_attempts[ws.url]['reconnecting']:
+                if DEBUG:
+                    ppi(f"[DEBUG] Reconnect already in progress for {ws.url}, skipping", None, '')
+                return
+            
+            # Markiere als "reconnecting"
+            reconnect_attempts[ws.url]['reconnecting'] = True
         
         # Prüfe ob Max-Versuche erreicht
         reconnect_info = reconnect_attempts[ws.url]
@@ -501,6 +558,7 @@ def on_close_wled(ws, close_status_code, close_msg):
             ppi(f"[WARNING] Maximum reconnect attempts ({MAX_RECONNECT_ATTEMPTS}) reached for {ws.url}", None, '')
             ppi(f"[WARNING] Endpoint {ws.url} will not reconnect automatically", None, '')
             ppi(f"[INFO] Reset via application restart or wait for monitoring thread", None, '')
+            reconnect_info['reconnecting'] = False  # Reset flag
             return
         
         # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
@@ -544,11 +602,18 @@ def on_close_wled(ws, close_status_code, close_msg):
         if not original_host or original_host.strip() == '':
             ppi(f"[ERROR] Cannot reconnect - invalid host extracted from {ws.url}", None, '')
             ppi(f"[INFO] Endpoint stays in list but won't reconnect until application restart", None, '')
+            reconnect_info['reconnecting'] = False  # Reset flag
             return
+        
+        # Reset reconnecting flag bevor connect_wled aufgerufen wird
+        reconnect_info['reconnecting'] = False
         
         connect_wled(original_host)
     except Exception as e:
         ppe('WS-Close failed: ', e)
+        # Sicherstellen dass reconnecting flag zurückgesetzt wird
+        if ws.url in reconnect_attempts:
+            reconnect_attempts[ws.url]['reconnecting'] = False
     
 def on_error_wled(ws, error):
     ppe('WLED Controller connection lost WS-Error ' + str(ws.url) + ' failed: ', error)
@@ -690,40 +755,66 @@ def get_segment_count():
     
     return 1  # Fallback auf 1 Segment
 
-def get_led_count():
+def get_led_count(endpoint_url=None):
     """
     Ermittelt die Anzahl der LEDs vom WLED-Controller
+    
+    Args:
+        endpoint_url: WebSocket-URL des Endpoints (z.B. 'ws://192.168.1.144/ws')
+                     Wenn None, wird WLED_ENDPOINT_PRIMARY verwendet
     """
+    global led_counts
+    
     try:
-        if wled_data_manager:
-            # Versuche aus cached data zu holen
+        # Bestimme den Host
+        if endpoint_url:
+            clean_host = endpoint_url.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        else:
+            clean_host = WLED_ENDPOINT_PRIMARY.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        
+        # Prüfe ob bereits im Cache
+        cache_key = f'ws://{clean_host}/ws'
+        if cache_key in led_counts and led_counts[cache_key] > 0:
+            if DEBUG:
+                ppi(f"  [DEBUG] LED count from cache for {cache_key}: {led_counts[cache_key]}", None, '')
+            return led_counts[cache_key]
+        
+        # Versuche aus wled_data_manager zu holen (nur wenn kein spezifischer Endpoint)
+        if not endpoint_url and wled_data_manager:
             info = wled_data_manager.wled_data.get('info', {})
             leds = info.get('leds', {})
             count = leds.get('count', 0)
             if count > 0:
                 if DEBUG:
-                    ppi(f"  [DEBUG] LED count from cache: {count}", None, '')
+                    ppi(f"  [DEBUG] LED count from wled_data_manager: {count}", None, '')
+                led_counts[cache_key] = count  # Cache speichern
                 return count
         
-        # Fallback: Direkte Abfrage vom Controller
-        clean_host = WLED_ENDPOINT_PRIMARY.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        # Fallback: Direkte HTTP-Abfrage vom Controller
         info_url = f'http://{clean_host}/json/info'
         response = requests.get(info_url, timeout=2)
         if response.status_code == 200:
             info_data = response.json()
             if 'leds' in info_data and 'count' in info_data['leds']:
                 count = info_data['leds']['count']
+                led_counts[cache_key] = count  # Cache speichern
                 if DEBUG:
-                    ppi(f"  [DEBUG] LED count from HTTP request: {count}", None, '')
+                    ppi(f"  [DEBUG] LED count from HTTP request for {clean_host}: {count}", None, '')
                 return count
     except Exception as e:
         if DEBUG:
-            ppe("Error while determining LED count: ", e)
+            ppe(f"Error while determining LED count for {endpoint_url or WLED_ENDPOINT_PRIMARY}: ", e)
     
     return 0  # Fallback - WLED verwendet dann seine Default-Einstellung
 
-def prepare_data_for_segments(data):
-    # Bereitet die Daten vor und setzt Segmente auf Default zurück (außer bei Presets)
+def prepare_data_for_segments(data, endpoint_url=None):
+    """
+    Bereitet die Daten vor und setzt Segmente auf Default zurück (außer bei Presets)
+    
+    Args:
+        data: Die zu sendenden WLED-Daten
+        endpoint_url: WebSocket-URL des Endpoints (z.B. 'ws://192.168.1.144/ws')
+    """
     try:
         if DEBUG:
             ppi(f"  [DEBUG] prepare_data_for_segments INPUT: {json.dumps(data)}", None, '')
@@ -734,17 +825,19 @@ def prepare_data_for_segments(data):
             if DEBUG:
                 ppi(f"  [DEBUG] Preset detected, returning unchanged", None, '')
             return data
+        
+        # Für Effekte und Farben: Stelle sicher dass seg ein Array ist
         if 'seg' in data:
             seg_data = data['seg']
             
-            # Hole die LED-Anzahl und aktuelle Segment-Anzahl vom Controller
-            led_count = get_led_count()
+            # Hole die LED-Anzahl und aktuelle Segment-Anzahl vom Controller (spezifisch für diesen Endpoint!)
+            led_count = get_led_count(endpoint_url)
             current_segment_count = get_segment_count()
             
             # Wenn LED-Count nicht ermittelt werden kann, keine Modifikation
             if led_count == 0:
                 if DEBUG:
-                    ppi(f"  [WARNING] LED count is 0, skipping segment modification", None, '')
+                    ppi(f"  [WARNING] LED count is 0 for {endpoint_url or 'primary'}, skipping segment modification", None, '')
                 return data
             if isinstance(seg_data, dict):
                 new_segment = {
@@ -835,9 +928,6 @@ def broadcast(data):
     Sendet Daten an alle WLED-Endpoints mit detailliertem Logging
     """
     global WS_WLEDS
-
-    # Daten für alle Segmente vorbereiten (außer Presets)
-    prepared_data = prepare_data_for_segments(data)
     
     # Sammle nur aktive Verbindungen zum Senden (aber behalte alle in Liste)
     active_endpoints = []
@@ -860,6 +950,9 @@ def broadcast(data):
     results = []
     for wled_ep in active_endpoints:
         try:
+            # Bereite Daten spezifisch für diesen Endpoint vor (mit seiner LED-Anzahl!)
+            prepared_data = prepare_data_for_segments(data, wled_ep.url)
+            
             result = threading.Thread(target=broadcast_intern, args=(wled_ep, prepared_data))
             result.start()
             results.append(result)
