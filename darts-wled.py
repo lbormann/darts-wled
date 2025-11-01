@@ -9,6 +9,7 @@ import sys
 from color_constants import colors as WLED_COLORS
 from wled_data_manager import WLEDDataManager
 from connection_diagnostics import ConnectionDiagnostics
+from custom_argument_parser import CustomArgumentParser
 import time
 import requests
 import socketio
@@ -32,7 +33,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.9.3'
+VERSION = '1.9.4'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -1512,7 +1513,7 @@ def initialize_connections():
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
+    ap = CustomArgumentParser()
     ap.add_argument("-CON", "--connection", default="127.0.0.1:8079", required=False, help="Connection to data feeder")
     ap.add_argument("-WEPS", "--wled_endpoints", required=True, nargs='+', help="Url(s) to wled instance(s)")
     ap.add_argument("-DU", "--effect_duration", type=int, default=0, required=False, help="Duration of a played effect in seconds. After that WLED returns to idle. 0 means infinity duration.")
