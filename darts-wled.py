@@ -33,7 +33,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.9.4'
+VERSION = '1.9.5'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -54,7 +54,8 @@ connection_status = {
     'wled': False,
     'initialized': False,
     'restart_requested': False,
-    'monitoring_started': False
+    'monitoring_started': False,
+    'startup_phase': True  # NEU: Flag um Startup-Phase zu tracken
 }
 
 # Reconnect tracking per endpoint
@@ -63,6 +64,7 @@ reconnect_lock = threading.Lock()  # Lock für Thread-sichere Reconnect-Prüfung
 MAX_RECONNECT_ATTEMPTS = 10
 INITIAL_BACKOFF = 3  # Sekunden
 MAX_BACKOFF = 60  # Maximal 60 Sekunden warten
+STARTUP_GRACE_PERIOD = 5  # Sekunden: Grace-Period nach Verbindungsaufbau bevor Reconnect aktiv wird
 
 # LED-Count pro Endpoint
 led_counts = {}  # {endpoint_url: led_count}
@@ -120,6 +122,7 @@ def restart_application():
     connection_status['wled'] = False
     connection_status['initialized'] = False
     connection_status['restart_requested'] = True
+    connection_status['startup_phase'] = True  # NEU: Reset Startup-Phase für Reconnect
     
     # Reset alle Reconnect-Counter
     global reconnect_attempts
@@ -392,6 +395,17 @@ def on_open_wled(ws):
         if DEBUG:
             ppi(f"[DEBUG] Reconnect counter reset for {ws.url}", None, '')
     
+    # NEU: Beende Startup-Phase nach Grace-Period
+    if connection_status.get('startup_phase', False):
+        def end_startup_phase():
+            time.sleep(STARTUP_GRACE_PERIOD)
+            connection_status['startup_phase'] = False
+            if DEBUG:
+                ppi(f"[DEBUG] Startup phase ended - Auto-reconnect now active", None, '')
+        
+        # Starte Timer nur einmal beim ersten erfolgreichen Connect
+        threading.Thread(target=end_startup_phase, daemon=True).start()
+    
     # Ermittle und cache LED-Anzahl für diesen Endpoint
     led_count = get_led_count(ws.url)
     if led_count > 0 and DEBUG:
@@ -538,6 +552,13 @@ def on_close_wled(ws, close_status_code, close_msg):
             }
             if close_status_code in close_code_messages:
                 ppi(f"  Close reason: {close_code_messages[close_status_code]}", None, '')
+        
+        # NEU: Während Startup-Phase keine automatischen Reconnects
+        # Die Startup-Phase endet nach STARTUP_GRACE_PERIOD Sekunden nach dem ersten erfolgreichen Connect
+        if connection_status.get('startup_phase', False):
+            if DEBUG:
+                ppi(f"[DEBUG] Ignoring close during startup phase for {ws.url}", None, '')
+            return
         
         # Reconnect-Tracking initialisieren falls nicht vorhanden
         if ws.url not in reconnect_attempts:

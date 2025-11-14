@@ -1,3 +1,7 @@
+## b1.9.4
+- Bugfix endpoint reconects
+
+
 ## b1.9.3
 - Fixed segment handling when switching from multi-segment presets to color/effect control
   - All segments except segment 0 are now properly deactivated
