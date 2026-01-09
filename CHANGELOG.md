@@ -1,3 +1,81 @@
+## v1.10.0
+- Bugfix endpoint reconects
+
+
+       ### b1.9.3
+       - Fixed segment handling when switching from multi-segment presets to color/effect control
+       - All segments except segment 0 are now properly deactivated
+       - Segment 0 is completely recreated with clean default values
+       - Layout fields (grouping, spacing, offset) are explicitly reset to defaults
+       - Only effect-specific fields are preserved from the command
+       - Endpoint-specific LED count management
+       - Each WLED controller now uses its own LED count for segment configuration
+       - LED counts are cached per endpoint for improved performance
+       - Automatic LED count detection on connection
+       - Improved thread management and reconnect behavior
+       - Old WebSocket threads are properly closed before creating new connections
+       - Thread-safe reconnect mechanism prevents duplicate connection attempts
+       - Daemon threads prevent zombie processes
+       - Named threads for better debugging (e.g., "WLED-192.168.1.144")
+       - Enhanced error handling
+       - Better validation of empty effect lists to prevent IndexError
+       - Improved debug output for segment operations
+       - More detailed error messages showing affected configuration 
+
+       ### b1.9.1
+       - reconnect behaviour changes. 
+              - improved stability
+
+       ### b1.9.0
+       - stability "improvements"
+       - more Debug possibility
+       - changed default value for BSW to off
+
+       ### b1.9.4
+       - Bugfix endpoint reconects
+
+
+## b1.9.3
+- Fixed segment handling when switching from multi-segment presets to color/effect control
+  - All segments except segment 0 are now properly deactivated
+  - Segment 0 is completely recreated with clean default values
+  - Layout fields (grouping, spacing, offset) are explicitly reset to defaults
+  - Only effect-specific fields are preserved from the command
+- Endpoint-specific LED count management
+  - Each WLED controller now uses its own LED count for segment configuration
+  - LED counts are cached per endpoint for improved performance
+  - Automatic LED count detection on connection
+- Improved thread management and reconnect behavior
+  - Old WebSocket threads are properly closed before creating new connections
+  - Thread-safe reconnect mechanism prevents duplicate connection attempts
+  - Daemon threads prevent zombie processes
+  - Named threads for better debugging (e.g., "WLED-192.168.1.144")
+- Enhanced error handling
+  - Better validation of empty effect lists to prevent IndexError
+  - Improved debug output for segment operations
+  - More detailed error messages showing affected configuration 
+
+## b1.9.1
+- reconnect behaviour changes. 
+       - improved stability
+
+## b1.9.1
+- reconnect behaviour changes. 
+       - improved stability
+
+## b1.9.0
+- stability "improvements"
+- more Debug possibility
+- changed default value for BSW to off
+
+## 1.8.3
+- new WLED Data Manager for improved performance and data caching
+- automatic multi-segment support - effects now apply to all active segments
+- enhanced WLED data synchronization with change detection
+- improved error handling and logging for WLED communication
+- cached WLED effects, presets, and palettes for faster startup
+- automatic segment count detection and configuration
+
 ## 1.8.2
 - some backend changes
 
