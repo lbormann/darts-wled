@@ -6,3 +6,4 @@ fav-effects.txt
 __pycache__
 wled_data.json
 wled_data_example.json
+CONNECTION_DIAGNOSTICS.md
