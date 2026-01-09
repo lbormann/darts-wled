@@ -4,3 +4,4 @@ dist
 *.spec
 fav-effects.txt
 __pycache__
+wled_data.json
