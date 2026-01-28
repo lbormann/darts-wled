@@ -1,3 +1,6 @@
+## v1.10.1
+- bugfix takeout effekt
+
 ## v1.10.0
 - Bugfix endpoint reconects
 

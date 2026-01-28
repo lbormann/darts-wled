@@ -24,40 +24,9 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            ## v1.10.0
-              - Bugfix endpoint reconects
-              ### b1.9.3
-              - Fixed segment handling when switching from multi-segment presets to color/effect control
-              - All segments except segment 0 are now properly deactivated
-              - Segment 0 is completely recreated with clean default values
-              - Layout fields (grouping, spacing, offset) are explicitly reset to defaults
-              - Only effect-specific fields are preserved from the command
-              - Endpoint-specific LED count management
-              - Each WLED controller now uses its own LED count for segment configuration
-              - LED counts are cached per endpoint for improved performance
-              - Automatic LED count detection on connection
-              - Improved thread management and reconnect behavior
-              - Old WebSocket threads are properly closed before creating new connections
-              - Thread-safe reconnect mechanism prevents duplicate connection attempts
-              - Daemon threads prevent zombie processes
-              - Named threads for better debugging (e.g., "WLED-192.168.1.144")
-              - Enhanced error handling
-              - Better validation of empty effect lists to prevent IndexError
-              - Improved debug output for segment operations
-              - More detailed error messages showing affected configuration 
-
-              ### b1.9.1
-              - reconnect behaviour changes. 
-                      - improved stability
-
-              ### b1.9.0
-              - stability "improvements"
-              - more Debug possibility
-              - changed default value for BSW to off
-
-              ### b1.9.4
-              - Bugfix endpoint reconects 
-            
+            ## v1.10.1
+              - Bugfix Takeout effekt not stopping after Takeout Finished
+              
         draft: false
         prerelease: ${{ startsWith(github.ref, 'refs/tags/b') }}
     - name: Output Release URL File

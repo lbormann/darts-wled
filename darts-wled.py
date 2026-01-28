@@ -33,7 +33,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.10.0'
+VERSION = '1.10.1'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -1309,8 +1309,8 @@ def process_board_status(msg, playerIndex):
             check_player_idle(playerIndex, 'Manual reset')
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
             control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False, argument_name='-TOE')
-        # elif msg['data']['status'] == 'Takeout Finished':
-        #     control_wled(IDLE_EFFECT, 'Takeout Finished', bss_requested=False)
+        elif msg['data']['status'] == 'Takeout Finished':
+            check_player_idle(playerIndex, 'Takeout Finished')
         elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:
             control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False, argument_name='-CE')
         elif msg['data']['status'] == 'Calibration Finished':
