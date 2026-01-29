@@ -24,7 +24,7 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            ## v1.10.1
+            ## v1.10.2
               - Bugfix Takeout effekt not stopping after Takeout Finished
               
         draft: false

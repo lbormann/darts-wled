@@ -33,7 +33,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.10.1'
+VERSION = '1.10.2'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -1305,7 +1305,7 @@ def process_board_status(msg, playerIndex):
         #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
             check_player_idle(playerIndex, 'Board Started')
-        elif msg['data']['status'] == 'Manual reset' and IDLE_EFFECT is None:
+        elif msg['data']['status'] == 'Manual reset' and IDLE_EFFECT is not None:
             check_player_idle(playerIndex, 'Manual reset')
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
             control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False, argument_name='-TOE')
@@ -1340,22 +1340,6 @@ def check_player_idle(playerIndex, message):
         # Fallback auf IDLE_EFFECT wenn kein Player-spezifischer Effekt definiert ist
         if IDLE_EFFECT is not None:
             control_wled(IDLE_EFFECT, message, bss_requested=False, argument_name='-IDE')
-
-def check_player_idle(playerIndex, message):
-    if playerIndex == '0' and IDLE_EFFECT is not None:
-        control_wled(IDLE_EFFECT, message, bss_requested=False)
-    elif playerIndex == '1' and IDLE_EFFECT2 is not None:
-        control_wled(IDLE_EFFECT2, message, bss_requested=False)
-    elif playerIndex == '2' and IDLE_EFFECT3 is not None:
-        control_wled(IDLE_EFFECT3, message, bss_requested=False)
-    elif playerIndex == '3' and IDLE_EFFECT4 is not None:   
-        control_wled(IDLE_EFFECT4, message, bss_requested=False)
-    elif playerIndex == '4' and IDLE_EFFECT5 is not None:
-        control_wled(IDLE_EFFECT5, message, bss_requested=False)
-    elif playerIndex == '5' and IDLE_EFFECT6 is not None:
-        control_wled(IDLE_EFFECT6, message, bss_requested=False)
-    else:
-        control_wled(IDLE_EFFECT, message, bss_requested=False)
 
 @sio.event
 def connect():
