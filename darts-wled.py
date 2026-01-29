@@ -33,7 +33,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.10.2'
+VERSION = '1.10.3'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -686,7 +686,7 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
         broadcast(state)
     else:
         (state, duration) = get_state(effect_list)
-        state.update({'on': True})
+        state.update({'on': True, 'bri': EFFECT_BRIGHTNESS})
         broadcast(state)
 
     # Erweiterte Ausgabe mit Argument-Name und Endpoint-Info

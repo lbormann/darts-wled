@@ -1,3 +1,7 @@
+
+## v1.10.3
+- bugfix Brightness not working
+
 ## v1.10.2
 - bugfix takeout effekt
 

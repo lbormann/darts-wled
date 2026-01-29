@@ -24,8 +24,8 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            ## v1.10.2
-              - Bugfix Takeout effekt not stopping after Takeout Finished
+            ## v1.10.3
+              - bugfix Brightness not working
               
         draft: false
         prerelease: ${{ startsWith(github.ref, 'refs/tags/b') }}
