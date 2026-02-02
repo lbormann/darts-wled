@@ -24,8 +24,8 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            ## v1.10.3
-              - bugfix Brightness not working
+            ## v1.10.4
+            - Bugfix: Speed (sx), Intensity (ix) and Palette (pal) parameters are now correctly sent as integer values to WLED
               
         draft: false
         prerelease: ${{ startsWith(github.ref, 'refs/tags/b') }}

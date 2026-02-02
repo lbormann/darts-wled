@@ -1,3 +1,5 @@
+## v1.10.4
+- Bugfix: Speed (sx), Intensity (ix) and Palette (pal) parameters are now correctly sent as integer values to WLED
 
 ## v1.10.3
 - bugfix Brightness not working

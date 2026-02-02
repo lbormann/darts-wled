@@ -33,7 +33,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.10.3'
+VERSION = '1.10.4'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -1087,15 +1087,15 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
 
                 # s = speed (sx)
                 if param_key == 's' and param_value.isdigit() == True:
-                    seg["sx"] = param_value
+                    seg["sx"] = int(param_value)
 
                 # i = intensity (ix)
                 elif param_key == 'i' and param_value.isdigit() == True:
-                    seg["ix"] = param_value
+                    seg["ix"] = int(param_value)
 
                 # p = palette (pal)
                 elif param_key == 'p' and param_value.isdigit() == True:
-                    seg["pal"] = param_value
+                    seg["pal"] = int(param_value)
 
                 # du (custom duration)
                 elif custom_duration_possible == True and param_key == 'd' and param_value.isdigit() == True:
