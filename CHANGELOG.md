@@ -1,4 +1,4 @@
-## v1.11.0
+## b1.11.0.1
 - add Multidevicesupport for more then one endpoint. Documented in Readme.md
 
 ## v1.10.4
