@@ -142,6 +142,8 @@ Click on the shortcut to start the application.
 - -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
 - -OFF / --wled_off [OPTIONAL] [Default: 0]
 - -SOFF / --wled_off_at_start [OPTIONAL] [Default: 0]
+- -SLE / --sleep_effect [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
+- -SLET / --sleep_timeout [OPTIONAL] [Default: 300]
 
 
 
@@ -469,6 +471,28 @@ For more examples see below!
 
 <p>Controls your wled(s) and turns it off when WLED controller is connected.
 1/true will activate the feature</p>
+
+#### *`-SLE / --sleep_effect`*
+
+<p>Controls your wled(s) when no activity from the data feeder is detected for a configurable duration (see -SLET).
+The system enters sleep mode when only PING/PONG messages are received (no game events). Once a new game event arrives, the system wakes up automatically and resumes normal operation.
+Define one effect/preset/playlist or a list. If you define a list, the program will randomly choose at runtime.
+
+
+Examples:
+
+Use Presets: "ps|1 ps|2"
+
+Use effect: "fire flicker"
+
+Use color: "solid|blue"</p>
+
+For more examples see below!
+
+#### *`-SLET / --sleep_timeout`*
+
+<p>Duration (in seconds) of inactivity before the sleep effect (-SLE) is triggered.
+By default this is '300' (5 minutes). Only relevant when -SLE is configured.</p>
 
 #### *`-DS{1-20} / --dart_score_{1-20}_effects`*
 

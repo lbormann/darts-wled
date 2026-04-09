@@ -13,7 +13,7 @@
             "console": "integratedTerminal",
             "args": [
                 "-WEPS","192.168.1.144",
-                "192.168.1.20",
+                "192.168.1.141",
                 "-CON=192.168.1.142:8079",
                 "-DU=15",
                 "-HF=ps|5",
@@ -26,6 +26,8 @@
                 "-BSW=0",
                 "-BSE=solid|red1",
                 "-TOE=solid|cadmiumyellow",
+                "-SLE=solid|blue",
+                "-SLET=60",
                 //"-DU=2",
                 "-CE=solid|pink",
                 // "-A1=60-100 strobe mega|s146|i153|p11",

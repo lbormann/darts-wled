@@ -28,6 +28,16 @@ logger.handlers.clear()
 logger.setLevel(logging.INFO)
 logger.addHandler(sh)
 
+# Filter für irrelevante engineio mirror-Events
+class MirrorEventFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if 'mirror' in msg and 'MESSAGE' in msg:
+            return False
+        return True
+
+logging.getLogger('engineio.client').addFilter(MirrorEventFilter())
+
 
 
 http_session = requests.Session()
@@ -36,7 +46,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.11.0.1'
+VERSION = '1.11.0.2'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -702,32 +712,50 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
     if effect_list == 'off':
         tempstate = '{"on":false}'
         state = json.loads(tempstate)
-        broadcast(state)
+        broadcast(state, argument_name=argument_name)
         target_description = 'ALL configured endpoints'
+    elif _has_explicit_targets(effect_list):
+        # Multi-Endpoint-Modus: Alle Effekte mit explizitem e:-Target gleichzeitig senden
+        for effect in effect_list:
+            (ep_state, ep_duration, ep_target) = _resolve_effect_state(effect)
+            ep_state.update({'on': True, 'bri': EFFECT_BRIGHTNESS})
+            broadcast(ep_state, endpoint_target=ep_target, argument_name=argument_name)
+            ep_target_desc = build_target_description(ep_target)
+            if argument_name:
+                ppi(f"{ptext} [{argument_name}] --> {ep_target_desc}", None, '')
+            else:
+                ppi(f"{ptext} --> {ep_target_desc}", None, '')
+            ppi(f"  WLED Command: {str(ep_state)}", None, '')
+            # Längste Duration merken
+            if ep_duration is not None:
+                duration = max(duration or 0, ep_duration)
+        state = None  # Kein einzelner State bei Multi-Dispatch
+        target_description = 'multi-endpoint dispatch'
     else:
         (state, duration, target) = get_state_with_target(effect_list)
         state.update({'on': True, 'bri': EFFECT_BRIGHTNESS})
-        broadcast(state, endpoint_target=target)
+        broadcast(state, endpoint_target=target, argument_name=argument_name)
         target_description = build_target_description(target)
 
-    # Erweiterte Ausgabe mit Argument-Name und Endpoint-Info
+    # Erweiterte Ausgabe mit Argument-Name und Endpoint-Info (nur für Single-Dispatch)
     router = WLEDEndpointRouter(WLED_ENDPOINTS, WS_WLEDS)
     endpoint_list = [ws.url for ws in router.get_active_endpoints()]
     endpoint_count = len(endpoint_list)
     
-    if argument_name:
-        if endpoint_count > 1:
-            ppi(f"{ptext} [{argument_name}] --> {target_description}", None, '')
-            ppi(f"  WLED Command: {str(state)}", None, '')
+    if state is not None:
+        if argument_name:
+            if endpoint_count > 1:
+                ppi(f"{ptext} [{argument_name}] --> {target_description}", None, '')
+                ppi(f"  WLED Command: {str(state)}", None, '')
+            else:
+                ppi(f"{ptext} [{argument_name}] --> {target_description if endpoint_count else 'No endpoints'}", None, '')
+                ppi(f"  WLED Command: {str(state)}", None, '')
         else:
-            ppi(f"{ptext} [{argument_name}] --> {target_description if endpoint_count else 'No endpoints'}", None, '')
-            ppi(f"  WLED Command: {str(state)}", None, '')
-    else:
-        if endpoint_count > 1:
-            ppi(f"{ptext} --> {target_description}", None, '')
-            ppi(f"  WLED Command: {str(state)}", None, '')
-        else:
-            ppi(ptext + ' - WLED: ' + str(state))
+            if endpoint_count > 1:
+                ppi(f"{ptext} --> {target_description}", None, '')
+                ppi(f"  WLED Command: {str(state)}", None, '')
+            else:
+                ppi(ptext + ' - WLED: ' + str(state))
 
     if bss_requested == True:
         waitingForIdle = True
@@ -775,7 +803,7 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
             else:
                 (state, duration) = get_state(IDLE_EFFECT)
             state.update({'on': True})
-            broadcast(state)
+            broadcast(state, argument_name=argument_name)
 
 def get_segment_count(endpoint_url=None):
     """
@@ -984,7 +1012,7 @@ def build_target_description(endpoint_target):
     return f"selected endpoints (currently offline): {router.describe_targets(endpoint_target)}"
 
 
-def broadcast(data, endpoint_target=None):
+def broadcast(data, endpoint_target=None, argument_name=None):
     """
     Sendet Daten an alle WLED-Endpoints mit detailliertem Logging
     """
@@ -1003,7 +1031,8 @@ def broadcast(data, endpoint_target=None):
     if len(targeted_endpoints) > 0:
         endpoint_urls = [ws.url for ws in targeted_endpoints]
         if DEBUG or len(targeted_endpoints) > 1:
-            ppi(f"  --> Broadcasting to {len(targeted_endpoints)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
+            arg_info = f" [{argument_name}]" if argument_name else ""
+            ppi(f"  --> Broadcasting{arg_info} to {len(targeted_endpoints)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
     else:
         ppi(f"  [WARNING] No configured endpoints available for broadcast", None, '')
         return
@@ -1025,10 +1054,12 @@ def broadcast(data, endpoint_target=None):
             ppe(f"  [ERROR] Failed to start thread for {wled_ep.url}: ", e)
             continue
     
-    # Optional: Warte auf alle Threads (für besseres Logging)
-    if DEBUG:
+    # Kurz auf alle Threads warten (non-blocking, paralleles Warten)
+    if DEBUG and results:
+        deadline = time.time() + 0.15
         for thread in results:
-            thread.join(timeout=1)
+            remaining = max(0, deadline - time.time())
+            thread.join(timeout=remaining)
 
 def broadcast_intern(endpoint, data):
     """
@@ -1066,17 +1097,28 @@ def get_state(effect_list):
     return selected_effect
 
 
-def get_state_with_target(effect_list):
-    selected_effect = random.choice(effect_list)
+def _has_explicit_targets(effect_list) -> bool:
+    """Prüft ob mindestens ein Effekt in der Liste ein explizites e:-Target hat"""
+    for effect in effect_list:
+        if isinstance(effect, ParsedWLEDEffect) and not effect.target.is_broadcast:
+            return True
+    return False
 
-    if isinstance(selected_effect, ParsedWLEDEffect):
-        state = selected_effect.clone_state()
+
+def _resolve_effect_state(effect):
+    """Löst einen einzelnen ParsedWLEDEffect auf (inkl. Random-Effekt-Ersetzung)"""
+    if isinstance(effect, ParsedWLEDEffect):
+        state = effect.clone_state()
         if 'seg' in state and isinstance(state['seg'], dict) and state['seg'].get('fx') == RANDOM_EFFECT_TOKEN:
             state = deepcopy(state)
             state['seg']['fx'] = str(random.choice(WLED_EFFECT_ID_LIST))
-        return state, selected_effect.duration, selected_effect.target
+        return state, effect.duration, effect.target
+    return effect[0], effect[1], EndpointTarget.broadcast()
 
-    return selected_effect[0], selected_effect[1], EndpointTarget.broadcast()
+
+def get_state_with_target(effect_list):
+    selected_effect = random.choice(effect_list)
+    return _resolve_effect_state(selected_effect)
 
 def refresh_wled_data():
     """
@@ -1409,6 +1451,32 @@ def process_board_status(msg, playerIndex):
         elif msg['data']['status'] == 'Calibration Finished':
             check_player_idle(playerIndex, 'Calibration Finished')
 
+def sleep_monitor():
+    global sleepModeActive
+    global lastDataFeederActivity
+    while True:
+        try:
+            if SLEEP_EFFECT is not None and not sleepModeActive:
+                elapsed = time.time() - lastDataFeederActivity
+                if elapsed >= SLEEP_TIMEOUT:
+                    sleepModeActive = True
+                    ppi(f'Sleep mode activated after {SLEEP_TIMEOUT}s of inactivity', None, '')
+                    control_wled(SLEEP_EFFECT, 'Sleep mode', bss_requested=False, argument_name='-SLE')
+            time.sleep(1)
+        except Exception as e:
+            ppe('Sleep monitor error: ', e)
+            time.sleep(5)
+
+def wake_from_sleep():
+    global sleepModeActive
+    global lastDataFeederActivity
+    if sleepModeActive:
+        sleepModeActive = False
+        lastDataFeederActivity = time.time()
+        ppi('Waking up from sleep mode', None, '')
+    else:
+        lastDataFeederActivity = time.time()
+
 def process_wled_off():
     if WLED_OFF is not None and WLED_OFF == 1:
         control_wled('off', 'WLED Off', bss_requested=False, argument_name='-OFF')
@@ -1469,6 +1537,7 @@ def message(msg):
     global playerIndexGlobal
     global idleIndexGlobal
     try:
+        wake_from_sleep()
         if 'playerIndex' in msg:
             playerIndexGlobal = msg['playerIndex']
         # ppi(message)
@@ -1663,6 +1732,8 @@ if __name__ == "__main__":
         dartscore = str(ds)
         ap.add_argument("-DS" + dartscore, "--dart_score_" + dartscore + "_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
     ap.add_argument("-DSBULL", "--dart_score_BULL_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
+    ap.add_argument("-SLE", "--sleep_effect", default=None, required=False, nargs='*', help="WLED effect-definition when no activity is detected for sleep timeout duration")
+    ap.add_argument("-SLET", "--sleep_timeout", type=int, default=300, required=False, help="Seconds of inactivity before sleep effect is triggered (default: 300 = 5min)")
     # NEEDS TO BE MIGRATED
     ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
     args = vars(ap.parse_args())
@@ -1678,6 +1749,8 @@ if __name__ == "__main__":
         'high_finish_on': args['high_finish_on'],
         'wled_off': args['wled_off'],
         'wled_off_at_start': args['wled_off_at_start'],
+        'sleep_effect': args['sleep_effect'],
+        'sleep_timeout': args['sleep_timeout'],
         'board_stop_effect': args['board_stop_effect'],
         'takeout_effect': args['takeout_effect'],
         'calibration_effect': args['calibration_effect'],
@@ -1709,6 +1782,9 @@ if __name__ == "__main__":
     global waitingForBoardStart
     global playerIndexGlobal
     global idleIndexGlobal
+    global lastDataFeederActivity
+    global sleepModeActive
+    global sleepMonitorThread
     
     WS_WLEDS = list()
     lastMessage = None
@@ -1716,6 +1792,9 @@ if __name__ == "__main__":
     waitingForBoardStart = False
     playerIndexGlobal = None
     idleIndexGlobal = None
+    lastDataFeederActivity = time.time()
+    sleepModeActive = False
+    sleepMonitorThread = None
 
     # ppi('Started with following arguments:')
     # ppi(json.dumps(args, indent=4))
@@ -1751,6 +1830,7 @@ if __name__ == "__main__":
     HIGH_FINISH_ON = args['high_finish_on']
     WLED_OFF = args['wled_off']
     WLED_SOFF = args['wled_off_at_start']
+    SLEEP_TIMEOUT = args['sleep_timeout']
     
     # Connection Test Mode - Teste alle Verbindungen und beende
     if CONNECTION_TEST == 1:
@@ -1858,6 +1938,7 @@ if __name__ == "__main__":
     HIGH_FINISH_EFFECTS = parse_effects_argument(args['high_finish_effects'])
     PLAYER_JOINED_EFFECTS = parse_effects_argument(args['player_joined_effects'])
     PLAYER_LEFT_EFFECTS = parse_effects_argument(args['player_left_effects'])
+    SLEEP_EFFECT = parse_effects_argument(args['sleep_effect'])
 
     SCORE_EFFECTS = dict()
     for v in range(0, 181):
@@ -1892,6 +1973,14 @@ if __name__ == "__main__":
                 time.sleep(5)
                 continue
             
+            # Start sleep monitor thread if sleep effect is configured
+            if SLEEP_EFFECT is not None and (sleepMonitorThread is None or not sleepMonitorThread.is_alive()):
+                lastDataFeederActivity = time.time()
+                sleepModeActive = False
+                sleepMonitorThread = threading.Thread(target=sleep_monitor, daemon=True)
+                sleepMonitorThread.start()
+                ppi(f'Sleep monitor started (timeout: {SLEEP_TIMEOUT}s)', None, '')
+
             # Keep main thread alive
             ppi("="*50, None, '')
             ppi("APPLICATION RUNNING", None, '')
