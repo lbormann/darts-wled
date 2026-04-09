@@ -24,8 +24,11 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            ## b1.11.0.1
+            ## b1.11.0.2
             - add Multidevicesupport for more then one endpoint. Documented in Readme.md
+            - improved WLED Data Manager with endpoint-specific caching and automatic LED count detection
+            - add SLEEP effect which can be activated after a configurable idle time. Activated with -SLE and -SLET arguments
+            - removed mirror messages out of log. 
               
         draft: false
         prerelease: ${{ startsWith(github.ref, 'refs/tags/b') }}

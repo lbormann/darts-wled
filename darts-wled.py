@@ -1734,7 +1734,6 @@ if __name__ == "__main__":
     ap.add_argument("-DSBULL", "--dart_score_BULL_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
     ap.add_argument("-SLE", "--sleep_effect", default=None, required=False, nargs='*', help="WLED effect-definition when no activity is detected for sleep timeout duration")
     ap.add_argument("-SLET", "--sleep_timeout", type=int, default=300, required=False, help="Seconds of inactivity before sleep effect is triggered (default: 300 = 5min)")
-    # NEEDS TO BE MIGRATED
     ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
     args = vars(ap.parse_args())
 
