@@ -30,3 +30,15 @@ python "darts-wled.py" ^
 -TE "solid|lightgoldenrodyellow" ^
 -CE "solid|blue" ^
 -OFF "0"
+
+REM Multi-WLED targeting examples for -WEPS order: 0=primary, 1=secondary, 2=third device
+REM Example endpoints:
+REM -WEPS "192.168.1.100" "192.168.1.101" "192.168.1.102"
+REM
+REM Idle only on device 1, score animations on device 0, status on devices 1 and 2:
+REM -IDE "solid|lightgoldenrodyellow|e:1" ^
+REM -S26 "dynamic|e:0" ^
+REM -S180 "fire|e:0" "solid|gold1|e:1,2" ^
+REM -B "solid|red1|e:0,1,2" ^
+REM -G "ps|9|e:0" "ps|11|e:1,2|10" ^
+REM -M "running|orange|red1|e:0" "solid|blue|e:1,2" ^

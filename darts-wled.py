@@ -6,10 +6,13 @@ import argparse
 import threading
 import logging
 import sys
+from copy import deepcopy
 from color_constants import colors as WLED_COLORS
 from wled_data_manager import WLEDDataManager
 from connection_diagnostics import ConnectionDiagnostics
 from custom_argument_parser import CustomArgumentParser
+from effect_targeting import EndpointTarget, ParsedWLEDEffect, RANDOM_EFFECT_TOKEN
+from wled_endpoint_router import WLEDEndpointRouter, normalize_wled_ws_url
 import time
 import requests
 import socketio
@@ -33,7 +36,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.10.4'
+VERSION = '1.11.0'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -386,7 +389,8 @@ def connect_wled(we):
     threading.Thread(target=process, name=thread_name, daemon=True).start()
 
 def on_open_wled(ws):
-    connection_status['wled'] = True
+    if is_primary_wled_socket(ws.url):
+        connection_status['wled'] = True
     ppi(f"[OK] WLED connected: {ws.url}", None, '')
     
     # Reset reconnect counter bei erfolgreicher Verbindung
@@ -396,7 +400,7 @@ def on_open_wled(ws):
             ppi(f"[DEBUG] Reconnect counter reset for {ws.url}", None, '')
     
     # NEU: Beende Startup-Phase nach Grace-Period
-    if connection_status.get('startup_phase', False):
+    if is_primary_wled_socket(ws.url) and connection_status.get('startup_phase', False):
         def end_startup_phase():
             time.sleep(STARTUP_GRACE_PERIOD)
             connection_status['startup_phase'] = False
@@ -539,8 +543,15 @@ def on_message_wled(ws, message):
 
 def on_close_wled(ws, close_status_code, close_msg):
     try:
-        connection_status['wled'] = False
+        is_primary_endpoint = is_primary_wled_socket(ws.url)
+        if is_primary_endpoint:
+            connection_status['wled'] = False
         ppi("Websocket [" + str(ws.url) + "] closed! " + str(close_msg) + " - " + str(close_status_code))
+
+        if not is_primary_endpoint:
+            ppi(f"[WARNING] Secondary WLED endpoint unreachable due to network issues: {ws.url}", None, '')
+            ppi(f"[INFO] Endpoint remains configured and will still be addressed on future effects (fire-and-forget)", None, '')
+            return
         
         # WebSocket Close Status Code Interpretation (nur im DEBUG)
         if DEBUG and close_status_code:
@@ -638,10 +649,17 @@ def on_close_wled(ws, close_status_code, close_msg):
             reconnect_attempts[ws.url]['reconnecting'] = False
     
 def on_error_wled(ws, error):
-    ppe('WLED Controller connection lost WS-Error ' + str(ws.url) + ' failed: ', error)
+    is_primary_endpoint = is_primary_wled_socket(ws.url)
+
+    if is_primary_endpoint:
+        ppe('WLED Controller connection lost WS-Error ' + str(ws.url) + ' failed: ', error)
+    else:
+        ppi(f"[WARNING] Secondary WLED endpoint unreachable due to network issues: {ws.url}", None, '')
+        if DEBUG:
+            ppe('Secondary WLED WS-Error ' + str(ws.url) + ' failed: ', error)
     
     # Diagnose nur wenn DEBUG=1 UND CONNECTION_TEST=1
-    if DEBUG and CONNECTION_TEST == 1:
+    if is_primary_endpoint and DEBUG and CONNECTION_TEST == 1:
         url_parts = ws.url.replace('ws://', '').replace('wss://', '').split('/')
         host = url_parts[0].split(':')[0]
         port = 80
@@ -680,29 +698,33 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
         sio.emit('message', 'board-stop')
         if is_win == 1:
             time.sleep(0.15)
+    duration = None
     if effect_list == 'off':
         tempstate = '{"on":false}'
         state = json.loads(tempstate)
         broadcast(state)
+        target_description = 'ALL configured endpoints'
     else:
-        (state, duration) = get_state(effect_list)
+        (state, duration, target) = get_state_with_target(effect_list)
         state.update({'on': True, 'bri': EFFECT_BRIGHTNESS})
-        broadcast(state)
+        broadcast(state, endpoint_target=target)
+        target_description = build_target_description(target)
 
     # Erweiterte Ausgabe mit Argument-Name und Endpoint-Info
-    endpoint_count = len(WS_WLEDS)
-    endpoint_list = [ws.url for ws in WS_WLEDS]
+    router = WLEDEndpointRouter(WLED_ENDPOINTS, WS_WLEDS)
+    endpoint_list = [ws.url for ws in router.get_active_endpoints()]
+    endpoint_count = len(endpoint_list)
     
     if argument_name:
         if endpoint_count > 1:
-            ppi(f"{ptext} [{argument_name}] --> {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
+            ppi(f"{ptext} [{argument_name}] --> {target_description}", None, '')
             ppi(f"  WLED Command: {str(state)}", None, '')
         else:
-            ppi(f"{ptext} [{argument_name}] --> {endpoint_list[0] if endpoint_list else 'No endpoints'}", None, '')
+            ppi(f"{ptext} [{argument_name}] --> {target_description if endpoint_count else 'No endpoints'}", None, '')
             ppi(f"  WLED Command: {str(state)}", None, '')
     else:
         if endpoint_count > 1:
-            ppi(f"{ptext} --> {endpoint_count} endpoints: {', '.join(endpoint_list)}", None, '')
+            ppi(f"{ptext} --> {target_description}", None, '')
             ppi(f"  WLED Command: {str(state)}", None, '')
         else:
             ppi(ptext + ' - WLED: ' + str(state))
@@ -755,13 +777,14 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
             state.update({'on': True})
             broadcast(state)
 
-def get_segment_count():
+def get_segment_count(endpoint_url=None):
     """
     Ermittelt die Anzahl der aktiven Segmente vom WLED-Controller (Live-Abfrage)
     """
     try:
         # Immer Live-Abfrage vom Controller für aktuelle Segment-Anzahl
-        clean_host = WLED_ENDPOINT_PRIMARY.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
+        source_endpoint = endpoint_url if endpoint_url else WLED_ENDPOINT_PRIMARY
+        clean_host = source_endpoint.replace('ws://', '').replace('wss://', '').replace('http://', '').replace('https://', '').rstrip('/ws').rstrip('/')
         state_url = f'http://{clean_host}/json/state'
         response = requests.get(state_url, timeout=2)
         if response.status_code == 200:
@@ -803,7 +826,8 @@ def get_led_count(endpoint_url=None):
         
         # Versuche aus wled_data_manager zu holen (nur wenn kein spezifischer Endpoint)
         if not endpoint_url and wled_data_manager:
-            info = wled_data_manager.wled_data.get('info', {})
+            ep_data = wled_data_manager.wled_data.get('endpoints', {}).get(wled_data_manager.primary_endpoint, {})
+            info = ep_data.get('info', {})
             leds = info.get('leds', {})
             count = leds.get('count', 0)
             if count > 0:
@@ -854,7 +878,7 @@ def prepare_data_for_segments(data, endpoint_url=None):
             
             # Hole die LED-Anzahl und aktuelle Segment-Anzahl vom Controller (spezifisch für diesen Endpoint!)
             led_count = get_led_count(endpoint_url)
-            current_segment_count = get_segment_count()
+            current_segment_count = get_segment_count(endpoint_url)
             
             # Wenn LED-Count nicht ermittelt werden kann, keine Modifikation
             if led_count == 0:
@@ -945,33 +969,52 @@ def prepare_data_for_segments(data, endpoint_url=None):
         ppe("Error while preparing segment data: ", e)
         return data
 
-def broadcast(data):
+def build_target_description(endpoint_target):
+    router = WLEDEndpointRouter(WLED_ENDPOINTS, WS_WLEDS)
+    active_targets = router.get_targeted_endpoints(endpoint_target)
+
+    if endpoint_target is None or endpoint_target.is_broadcast:
+        if active_targets:
+            return f"ALL active endpoints: {', '.join(ws.url for ws in active_targets)}"
+        return "ALL configured endpoints"
+
+    if active_targets:
+        return f"selected endpoints: {', '.join(ws.url for ws in active_targets)}"
+
+    return f"selected endpoints (currently offline): {router.describe_targets(endpoint_target)}"
+
+
+def broadcast(data, endpoint_target=None):
     """
     Sendet Daten an alle WLED-Endpoints mit detailliertem Logging
     """
     global WS_WLEDS
-    
-    # Sammle nur aktive Verbindungen zum Senden (aber behalte alle in Liste)
-    active_endpoints = []
-    for ws in WS_WLEDS:
-        # Prüfe ob WebSocket noch offen ist
-        if hasattr(ws, 'sock') and ws.sock and ws.sock.connected:
-            active_endpoints.append(ws)
-        elif DEBUG:
-            ppi(f"  [INFO] Skipping closed endpoint (will reconnect later): {ws.url}", None, '')
+    router = WLEDEndpointRouter(WLED_ENDPOINTS, WS_WLEDS)
+    targeted_endpoints = router.get_targeted_endpoints(endpoint_target, include_inactive=True)
+    active_endpoints = router.get_targeted_endpoints(endpoint_target)
+
+    if DEBUG:
+        targeted_urls = {endpoint.url for endpoint in targeted_endpoints}
+        for ws in WS_WLEDS:
+            if ws.url not in targeted_urls:
+                ppi(f"  [INFO] Skipping closed or untargeted endpoint: {ws.url}", None, '')
     
     # Log an welche Endpoints gesendet wird
-    if len(active_endpoints) > 0:
-        endpoint_urls = [ws.url for ws in active_endpoints]
-        if DEBUG or len(active_endpoints) > 1:
-            ppi(f"  --> Broadcasting to {len(active_endpoints)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
+    if len(targeted_endpoints) > 0:
+        endpoint_urls = [ws.url for ws in targeted_endpoints]
+        if DEBUG or len(targeted_endpoints) > 1:
+            ppi(f"  --> Broadcasting to {len(targeted_endpoints)} endpoint(s): {', '.join(endpoint_urls)}", None, '')
     else:
-        ppi(f"  [WARNING] No active endpoints available for broadcast", None, '')
+        ppi(f"  [WARNING] No configured endpoints available for broadcast", None, '')
         return
 
     results = []
-    for wled_ep in active_endpoints:
+    for wled_ep in targeted_endpoints:
         try:
+            if not is_endpoint_connected(wled_ep):
+                ppi(f"  [WARNING] WLED endpoint unreachable due to network issues: {wled_ep.url}", None, '')
+                continue
+
             # Bereite Daten spezifisch für diesen Endpoint vor (mit seiner LED-Anzahl!)
             prepared_data = prepare_data_for_segments(data, wled_ep.url)
             
@@ -1001,13 +1044,39 @@ def broadcast_intern(endpoint, data):
         return False
 
 
+def is_endpoint_connected(endpoint):
+    return hasattr(endpoint, 'sock') and endpoint.sock and endpoint.sock.connected
+
+
+def is_primary_wled_socket(endpoint_url):
+    return normalize_wled_ws_url(WLED_ENDPOINT_PRIMARY) == endpoint_url
+
+
 
 def get_state(effect_list):
-    if effect_list == ["x"] or effect_list == ["X"]:
-        # TODO: add more rnd parameter
-        return {"seg": {"fx": str(random.choice(WLED_EFFECT_ID_LIST))} } 
-    else:
-        return random.choice(effect_list)
+    selected_effect = random.choice(effect_list)
+
+    if isinstance(selected_effect, ParsedWLEDEffect):
+        state = selected_effect.clone_state()
+        if 'seg' in state and isinstance(state['seg'], dict) and state['seg'].get('fx') == RANDOM_EFFECT_TOKEN:
+            state = deepcopy(state)
+            state['seg']['fx'] = str(random.choice(WLED_EFFECT_ID_LIST))
+        return state, selected_effect.duration
+
+    return selected_effect
+
+
+def get_state_with_target(effect_list):
+    selected_effect = random.choice(effect_list)
+
+    if isinstance(selected_effect, ParsedWLEDEffect):
+        state = selected_effect.clone_state()
+        if 'seg' in state and isinstance(state['seg'], dict) and state['seg'].get('fx') == RANDOM_EFFECT_TOKEN:
+            state = deepcopy(state)
+            state['seg']['fx'] = str(random.choice(WLED_EFFECT_ID_LIST))
+        return state, selected_effect.duration, selected_effect.target
+
+    return selected_effect[0], selected_effect[1], EndpointTarget.broadcast()
 
 def refresh_wled_data():
     """
@@ -1043,7 +1112,7 @@ def refresh_wled_data():
         return False
 
 def parse_effects_argument(effects_argument, custom_duration_possible = True):
-    if effects_argument == None or effects_argument == ["x"] or effects_argument == ["X"]:
+    if effects_argument == None:
         return effects_argument
 
     parsed_list = list()
@@ -1053,22 +1122,37 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
             effect_declaration = effect_params[0].strip().lower()
             
             custom_duration = None
+            endpoint_target = EndpointTarget.broadcast()
 
             # preset/ playlist
             if effect_declaration == 'ps':
-                state = {effect_declaration : effect_params[1] }
-                if custom_duration_possible == True and len(effect_params) >= 3 and effect_params[2].isdigit() == True:
-                    custom_duration = int(effect_params[2])
-                parsed_list.append((state, custom_duration))
+                if len(effect_params) < 2 or effect_params[1].strip() == '':
+                    raise ValueError("Preset definition requires a preset or playlist ID")
+
+                state = {effect_declaration : effect_params[1].strip() }
+                for ep in effect_params[2:]:
+                    normalized_param = ep.strip().lower()
+                    if normalized_param.startswith('e:'):
+                        endpoint_target = EndpointTarget.parse(normalized_param[2:], len(WLED_ENDPOINTS))
+                    elif custom_duration_possible and normalized_param.isdigit():
+                        custom_duration = int(normalized_param)
+                    elif custom_duration_possible and normalized_param.startswith('d:') and normalized_param[2:].isdigit():
+                        custom_duration = int(normalized_param[2:])
+
+                parsed_list.append(ParsedWLEDEffect(state=state, duration=custom_duration, target=endpoint_target))
                 continue
             
             # effect by ID
             elif effect_declaration.isdigit() == True:
                 effect_id = effect_declaration
 
+            elif effect_declaration == 'x':
+                effect_id = RANDOM_EFFECT_TOKEN
+
             # effect by name
             else:
-                effect_id = str(WLED_EFFECTS.index(effect_declaration))
+                effect_names = [str(effect_name) for effect_name in WLED_EFFECTS]
+                effect_id = str(effect_names.index(effect_declaration))
             
    
 
@@ -1081,6 +1165,15 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
  
             colours = list()
             for ep in effect_params[1:]:
+                normalized_param = ep.strip().lower()
+
+                if normalized_param.startswith('e:'):
+                    endpoint_target = EndpointTarget.parse(normalized_param[2:], len(WLED_ENDPOINTS))
+                    continue
+
+                if custom_duration_possible and normalized_param.startswith('d:') and normalized_param[2:].isdigit():
+                    custom_duration = int(normalized_param[2:])
+                    continue
 
                 param_key = ep[0].strip().lower()
                 param_value = ep[1:].strip().lower()
@@ -1112,7 +1205,7 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
             if len(colours) > 0:
                 seg["col"] = colours
 
-            parsed_list.append(({"seg": seg}, custom_duration))
+            parsed_list.append(ParsedWLEDEffect(state={"seg": seg}, duration=custom_duration, target=endpoint_target))
 
         except Exception as e:
             ppe(f"Failed to parse event-configuration '{effect}': ", e)
@@ -1684,7 +1777,7 @@ if __name__ == "__main__":
         ppi('\r\n', None, '')
     
     # Initialize WLED Data Manager
-    wled_data_manager = WLEDDataManager(WLED_ENDPOINT_PRIMARY, "wled_data.json")
+    wled_data_manager = WLEDDataManager(WLED_ENDPOINTS, "wled_data.json")
     
     # Load existing data or create new
     ppi("Initializing WLED Data Manager...")
@@ -1696,32 +1789,36 @@ if __name__ == "__main__":
     sync_result = wled_data_manager.sync_and_save()
     
     if sync_result.get("has_changes", False):
-        changes = sync_result.get("changes", {})
-        ppi("WLED data updated:")
-        if "effects" in changes:
-            effects_info = changes["effects"]
-            ppi(f"  - Effects: {effects_info['total_new']} (previous: {effects_info['total_old']})")
-            if effects_info.get("added"):
-                ppi(f"    Added: {', '.join(effects_info['added'])}")
-            if effects_info.get("removed"):
-                ppi(f"    Removed: {', '.join(effects_info['removed'])}")
-        if "presets" in changes:
-            presets_info = changes["presets"]
-            ppi(f"  - Presets: {presets_info['new_count']} (previous: {presets_info['old_count']})")
-        if "palettes" in changes:
-            palettes_info = changes["palettes"]
-            ppi(f"  - Palettes: {palettes_info['new_count']} (previous: {palettes_info['old_count']})")
+        endpoint_results = sync_result.get("endpoint_results", {})
+        for ep, ep_result in endpoint_results.items():
+            if not ep_result.get("has_changes", False):
+                continue
+            changes = ep_result.get("changes", {})
+            ppi(f"WLED data updated for {ep}:")
+            if "effects" in changes:
+                effects_info = changes["effects"]
+                ppi(f"  - Effects: {effects_info['total_new']} (previous: {effects_info['total_old']})")
+                if effects_info.get("added"):
+                    ppi(f"    Added: {', '.join(effects_info['added'])}")
+                if effects_info.get("removed"):
+                    ppi(f"    Removed: {', '.join(effects_info['removed'])}")
+            if "presets" in changes:
+                presets_info = changes["presets"]
+                ppi(f"  - Presets: {presets_info['new_count']} (previous: {presets_info['old_count']})")
+            if "palettes" in changes:
+                palettes_info = changes["palettes"]
+                ppi(f"  - Palettes: {palettes_info['new_count']} (previous: {palettes_info['old_count']})")
     else:
         ppi("WLED data is up to date")
     
-    # Display WLED data summary
-    summary = wled_data_manager.get_data_summary()
+    # Display WLED data summary for all endpoints
+    for ep_summary in wled_data_manager.get_all_endpoints_summary():
+        ppi(f"WLED-Controller ({ep_summary['endpoint']}):")
+        ppi(f"  - {ep_summary['effects_count']} Effects available")
+        ppi(f"  - {ep_summary['presets_count']} Presets available")
+        ppi(f"  - {ep_summary['palettes_count']} Palettes available")
     segment_count = get_segment_count()
-    ppi(f"WLED-Controller ({summary['endpoint']}):")
-    ppi(f"  - {summary['effects_count']} Effects available")
-    ppi(f"  - {summary['presets_count']} Presets available")
-    ppi(f"  - {summary['palettes_count']} Palettes available")
-    ppi(f"  - {segment_count} active segments detected")
+    ppi(f"  - {segment_count} active segments detected (primary)")
 
     WLED_EFFECTS = list()
     WLED_EFFECT_ID_LIST = []

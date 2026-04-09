@@ -1,3 +1,6 @@
+## v1.11.0
+- add Multidevicesupport for more then one endpoint. Documented in Readme.md
+
 ## v1.10.4
 - Bugfix: Speed (sx), Intensity (ix) and Palette (pal) parameters are now correctly sent as integer values to WLED
 

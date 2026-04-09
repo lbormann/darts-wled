@@ -536,6 +536,55 @@ The third argument-definition shows a 'score-area': recognized scores between 16
 
     syntax: **"{'effect-name' or 'effect-ID'}|s{1-255}|i{1-255}|p{palette-ID}|d{seconds}"**
 
+* To target one or more specific WLED devices, add an endpoint selector based on the order of configured `-WEPS` entries.
+
+    syntax: **"{'effect-name' or 'effect-ID'}|e:{INDEX[,INDEX,...]}"**
+
+* Endpoint targeting also works together with presets and durations.
+
+    syntax: **"ps|{ID}|e:{INDEX[,INDEX,...]}|{seconds}"** or **"ps|{ID}|e:{INDEX[,INDEX,...]}|d:{seconds}"**
+
+* If no `e:` parameter is set, the effect is sent to all configured WLED endpoints.
+
+#### Endpoint targeting
+
+If you have multiple WLED devices connected via `-WEPS`, you can control which device(s) should display a specific effect using the `e:` parameter.
+
+| Parameter | Description | Example |
+| -- | -- | -- |
+| `e:INDEX` | Send effect to one specific WLED device | `e:0` |
+| `e:INDEX,INDEX,...` | Send effect to multiple WLED devices | `e:0,2` |
+| not set | Send effect to all configured WLED devices | `fire` |
+
+The index is 0-based and follows the order of your configured `-WEPS` endpoints.
+
+Example setup with three WLED devices:
+
+    -WEPS "192.168.1.100" "192.168.1.101" "192.168.1.102"
+
+| Effect definition | Target device(s) |
+| -- | -- |
+| `fire` | All devices (`192.168.1.100`, `.101`, `.102`) |
+| `fire|e:0` | Only first device (`192.168.1.100`) |
+| `fire|e:1` | Only second device (`192.168.1.101`) |
+| `fire|e:0,2` | First and third device (`192.168.1.100`, `.102`) |
+| `ps|7|e:1,2|10` | Preset 7 on second and third device for 10 seconds |
+| `solid|green1|e:2` | Only third device shows the color |
+
+Use case:
+
+You can split responsibilities across multiple WLED instances, for example:
+
+* Device `0`: score animations
+* Device `1`: player information / turn color
+* Device `2`: countdown or match state
+
+Example:
+
+    -S180 "fire|e:0" "solid|gold1|e:1,2"
+
+When a score of 180 occurs, the first WLED shows the fire animation while the second and third WLED devices show the gold effect.
+
 * For color-name usage, validate that the color-name you want is available in the list!
 
     validate here: **https://github.com/lbormann/darts-wled/blob/main/colors.txt**
