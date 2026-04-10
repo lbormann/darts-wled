@@ -45,6 +45,7 @@
                 "-IDE6=solid|lightcyan1",
                 "-S26=solid|red1",
                 "-S180=ps|4",
+                "-CMB=s1,s20,s5=26|red1|d:5"
             ]
         }
     ]

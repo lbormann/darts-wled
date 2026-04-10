@@ -1,6 +1,10 @@
 # DARTS-WLED
 [![Downloads](https://img.shields.io/github/downloads/lbormann/darts-wled/total.svg)](https://github.com/lbormann/darts-wled/releases/latest)
 
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M11XJQLO)
+
+
 Darts-wled controls your wled-installation(s) https://github.com/Aircoookie/WLED accordingly to the state of an https://autodarts.io game. A running instance of https://github.com/lbormann/darts-caller is needed that sends thrown points from https://autodarts.io to this application.
 
 
@@ -140,10 +144,12 @@ Click on the shortcut to start the application.
 - -CE / --calibration_effect [OPTIONAL] [Default: None] [Possible values: See below]
 - -DS{1-20} / --dart_score_{1-20}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
+- -CMB / --combo_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
 - -OFF / --wled_off [OPTIONAL] [Default: 0]
 - -SOFF / --wled_off_at_start [OPTIONAL] [Default: 0]
 - -SLE / --sleep_effect [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
 - -SLET / --sleep_timeout [OPTIONAL] [Default: 300]
+- -SLEOFF / --sleep_off_timeout [OPTIONAL] [Default: 0]
 
 
 
@@ -494,6 +500,11 @@ For more examples see below!
 <p>Duration (in seconds) of inactivity before the sleep effect (-SLE) is triggered.
 By default this is '300' (5 minutes). Only relevant when -SLE is configured.</p>
 
+#### *`-SLEOFF / --sleep_off_timeout`*
+
+<p>Duration (in minutes) in sleep mode before WLED is completely turned off.
+By default this is '0' (never turn off = stay in sleep effect indefinitely). Only relevant when -SLE is configured.</p>
+
 #### *`-DS{1-20} / --dart_score_{1-20}_effects`*
 
 <p>Controls your wled(s) when a specific score for single darts occurs. You can define every score-value between 1 and 20.
@@ -527,6 +538,40 @@ Use effect: "fire flicker"
 Use color: "solid|lightgoldenrodyellow"</p>
 
 For more examples see below!
+
+#### *`-CMB / --combo_effects`*
+
+<p>Controls your wled(s) when a specific combination of dart fields is thrown in a single turn (3 darts). Combo effects override Score (-S) and Score-Area (-A) effects but NOT Busted, Game-Won or Match-Won. The order of thrown darts does not matter — only the combination counts. Tracking resets on darts-pulled, busted, game-won, match-won, game-started and match-started.
+
+Requires individual dart events from the data feeder (dart1-thrown, dart2-thrown, dart3-thrown). Currently works in X01 mode. Bermuda and Cricket get combo-check on darts-thrown but lack individual dart tracking.</p>
+
+**Syntax:**
+
+* A string with `=` starts a new combo: `"field1,field2,field3=effect_definition"`
+* A string without `=` adds a random-choice effect to the previous combo
+* fieldName format: `s` = single, `d` = double, `t` = triple (e.g. `s1`, `t20`, `d25` for bull)
+
+**Examples:**
+
+Single combo (s1 + s20 + s5 triggers effect 26 in red for 5 seconds):
+
+    -CMB "s1,s20,s5=26|red1|d:5"
+
+Combo with random-choice effects:
+
+    -CMB "s1,s20,s5=26|red1|d:5" "solid|blue1|d:5"
+
+Multiple combos:
+
+    -CMB "s1,s20,s5=26|red1|d:5" "t20,t20,t20=fire|d:10"
+
+Combo with preset:
+
+    -CMB "t19,t19,t19=ps|4|d:8"
+
+Combo with multi-device targeting:
+
+    -CMB "s1,s20,s5=26|red1|e:0|d:5" "t20,t20,t20=fire|e:1|d:10"
 
 
 
@@ -589,11 +634,11 @@ Example setup with three WLED devices:
 | Effect definition | Target device(s) |
 | -- | -- |
 | `fire` | All devices (`192.168.1.100`, `.101`, `.102`) |
-| `fire|e:0` | Only first device (`192.168.1.100`) |
-| `fire|e:1` | Only second device (`192.168.1.101`) |
-| `fire|e:0,2` | First and third device (`192.168.1.100`, `.102`) |
-| `ps|7|e:1,2|10` | Preset 7 on second and third device for 10 seconds |
-| `solid|green1|e:2` | Only third device shows the color |
+| `fire\|e:0` | Only first device (`192.168.1.100`) |
+| `fire\|e:1` | Only second device (`192.168.1.101`) |
+| `fire\|e:0,2` | First and third device (`192.168.1.100`, `.102`) |
+| `ps\|7\|e:1,2\|10` | Preset 7 on second and third device for 10 seconds |
+| `solid\|green1\|e:2` | Only third device shows the color |
 
 Use case:
 

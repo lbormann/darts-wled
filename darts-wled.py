@@ -13,6 +13,7 @@ from connection_diagnostics import ConnectionDiagnostics
 from custom_argument_parser import CustomArgumentParser
 from effect_targeting import EndpointTarget, ParsedWLEDEffect, RANDOM_EFFECT_TOKEN
 from wled_endpoint_router import WLEDEndpointRouter, normalize_wled_ws_url
+from combo_effects import ComboEffectTracker, parse_combo_effects_argument
 import time
 import requests
 import socketio
@@ -46,7 +47,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.11.0.2'
+VERSION = '1.11.0.3'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -1288,6 +1289,15 @@ def process_variant_x01(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
         
+        # Combo-Check VOR Score-Verarbeitung
+        combo_result = combo_tracker.check_combo(msg.get('playerIndex'))
+        combo_tracker.clear(msg.get('playerIndex'))
+        
+        if combo_result is not None:
+            (combo_effects, combo_desc) = combo_result
+            control_wled(combo_effects, f'Combo [{combo_desc}] Score: {val}', playerIndex=msg.get('playerIndex'), argument_name='-CMB')
+            return
+        
         if SCORE_EFFECTS[val] is not None and len(SCORE_EFFECTS[val]) > 0:
             control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
             # ppi(SCORE_EFFECTS[val])
@@ -1306,36 +1316,52 @@ def process_variant_x01(msg):
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
+        combo_tracker.track_throw(msg)
         valDart = str(msg['game']['dartValue'])
         if valDart != '0':
             process_dartscore_effect(valDart, playerIndex=msg.get('playerIndex'))
 
     elif msg['event'] == 'darts-pulled':
+                combo_tracker.clear(msg.get('playerIndex'))
                 check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
+        combo_tracker.clear(msg.get('playerIndex'))
         control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg.get('playerIndex'), argument_name='-B')
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
+        combo_tracker.clear(msg.get('playerIndex'))
         if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
             control_wled(HIGH_FINISH_EFFECTS, 'Game-won - HIGHFINISH', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-HF')
         else:
             control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
+        combo_tracker.clear(msg.get('playerIndex'))
         if HIGH_FINISH_ON is not None and int(msg['game']['dartsThrownValue']) >= HIGH_FINISH_ON and HIGH_FINISH_EFFECTS is not None:
             control_wled(HIGH_FINISH_EFFECTS, 'Match-won - HIGHFINISH', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-HF')
         else:
             control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
+                combo_tracker.clear_all()
                 check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
+                combo_tracker.clear_all()
                 check_player_idle(msg.get('playerIndex'), 'game-started')
 
 def process_variant_Bermuda(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
+        
+        # Combo-Check VOR Score-Verarbeitung
+        combo_result = combo_tracker.check_combo(msg.get('playerIndex'))
+        combo_tracker.clear(msg.get('playerIndex'))
+        
+        if combo_result is not None:
+            (combo_effects, combo_desc) = combo_result
+            control_wled(combo_effects, f'Combo [{combo_desc}] Score: {val}', playerIndex=msg.get('playerIndex'), argument_name='-CMB')
+            return
         
         if SCORE_EFFECTS[val] is not None:
             control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
@@ -1359,26 +1385,41 @@ def process_variant_Bermuda(msg):
     #         process_dartscore_effect(valDart)
 
     elif msg['event'] == 'darts-pulled':
+            combo_tracker.clear(msg.get('playerIndex'))
             check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
+        combo_tracker.clear(msg.get('playerIndex'))
         control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg.get('playerIndex'), argument_name='-B')
 
     elif msg['event'] == 'game-won' and GAME_WON_EFFECTS is not None:
+        combo_tracker.clear(msg.get('playerIndex'))
         control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won' and MATCH_WON_EFFECTS is not None:
+        combo_tracker.clear(msg.get('playerIndex'))
         control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
+            combo_tracker.clear_all()
             check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
+            combo_tracker.clear_all()
             check_player_idle(msg.get('playerIndex'), 'game-started')
 
 def process_variant_Cricket(msg):
     if msg['event'] == 'darts-thrown':
         val = str(msg['game']['dartValue'])
+        
+        # Combo-Check VOR Score-Verarbeitung
+        combo_result = combo_tracker.check_combo(msg.get('playerIndex'))
+        combo_tracker.clear(msg.get('playerIndex'))
+        
+        if combo_result is not None:
+            (combo_effects, combo_desc) = combo_result
+            control_wled(combo_effects, f'Combo [{combo_desc}] Score: {val}', playerIndex=msg.get('playerIndex'), argument_name='-CMB')
+            return
         
         if SCORE_EFFECTS[val] is not None:
             control_wled(SCORE_EFFECTS[val], 'Darts-thrown: ' + val, playerIndex=msg.get('playerIndex'), argument_name=f'-S{val}')
@@ -1397,18 +1438,23 @@ def process_variant_Cricket(msg):
                 ppi('Darts-thrown: ' + val + ' - NOT configured!')
 
     elif msg['event'] == 'darts-pulled':
+            combo_tracker.clear(msg.get('playerIndex'))
             check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
 
     elif msg['event'] == 'game-won':
+        combo_tracker.clear(msg.get('playerIndex'))
         control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
 
     elif msg['event'] == 'match-won':
+        combo_tracker.clear(msg.get('playerIndex'))
         control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
+            combo_tracker.clear_all()
             check_player_idle(msg.get('playerIndex'), 'match-started')
 
     elif msg['event'] == 'game-started':
+            combo_tracker.clear_all()
             check_player_idle(msg.get('playerIndex'), 'game-started')
 
 def process_variant_ATC(msg):
@@ -1454,14 +1500,22 @@ def process_board_status(msg, playerIndex):
 def sleep_monitor():
     global sleepModeActive
     global lastDataFeederActivity
+    global sleepModeStartTime
     while True:
         try:
             if SLEEP_EFFECT is not None and not sleepModeActive:
                 elapsed = time.time() - lastDataFeederActivity
                 if elapsed >= SLEEP_TIMEOUT:
                     sleepModeActive = True
+                    sleepModeStartTime = time.time()
                     ppi(f'Sleep mode activated after {SLEEP_TIMEOUT}s of inactivity', None, '')
                     control_wled(SLEEP_EFFECT, 'Sleep mode', bss_requested=False, argument_name='-SLE')
+            elif sleepModeActive and SLEEP_OFF_TIMEOUT > 0:
+                sleep_elapsed = time.time() - sleepModeStartTime
+                if sleep_elapsed >= SLEEP_OFF_TIMEOUT:
+                    ppi(f'WLED turned off after {SLEEP_OFF_TIMEOUT // 60}min in sleep mode', None, '')
+                    control_wled('off', 'Sleep off', bss_requested=False, argument_name='-SLEOFF')
+                    sleepModeStartTime = time.time() + SLEEP_OFF_TIMEOUT
             time.sleep(1)
         except Exception as e:
             ppe('Sleep monitor error: ', e)
@@ -1734,7 +1788,9 @@ if __name__ == "__main__":
     ap.add_argument("-DSBULL", "--dart_score_BULL_effects", default=None, required=False, nargs='*', help="WLED effect-definition score of single dart")
     ap.add_argument("-SLE", "--sleep_effect", default=None, required=False, nargs='*', help="WLED effect-definition when no activity is detected for sleep timeout duration")
     ap.add_argument("-SLET", "--sleep_timeout", type=int, default=300, required=False, help="Seconds of inactivity before sleep effect is triggered (default: 300 = 5min)")
+    ap.add_argument("-SLEOFF", "--sleep_off_timeout", type=int, default=0, required=False, help="Minutes in sleep mode before WLED is turned off (default: 0 = never)")
     ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
+    ap.add_argument("-CMB", "--combo_effects", default=None, required=False, nargs='*', help="Combo effects based on dart field combinations. Format: 'field1,field2,field3=effect'. Multiple combos and random-choice effects in one argument.")
     args = vars(ap.parse_args())
 
     WLED_SETTINGS_ARGS = {
@@ -1750,6 +1806,7 @@ if __name__ == "__main__":
         'wled_off_at_start': args['wled_off_at_start'],
         'sleep_effect': args['sleep_effect'],
         'sleep_timeout': args['sleep_timeout'],
+        'sleep_off_timeout': args['sleep_off_timeout'],
         'board_stop_effect': args['board_stop_effect'],
         'takeout_effect': args['takeout_effect'],
         'calibration_effect': args['calibration_effect'],
@@ -1763,7 +1820,8 @@ if __name__ == "__main__":
         'match_won_effects': args['match_won_effects'],
         'busted_effects': args['busted_effects'],
         'player_joined_effects': args['player_joined_effects'],
-        'player_left_effects': args['player_left_effects']
+        'player_left_effects': args['player_left_effects'],
+        'combo_effects': args['combo_effects']
     }
     for sS in range(0, 181):
         sval = str(sS)
@@ -1783,6 +1841,7 @@ if __name__ == "__main__":
     global idleIndexGlobal
     global lastDataFeederActivity
     global sleepModeActive
+    global sleepModeStartTime
     global sleepMonitorThread
     
     WS_WLEDS = list()
@@ -1793,6 +1852,7 @@ if __name__ == "__main__":
     idleIndexGlobal = None
     lastDataFeederActivity = time.time()
     sleepModeActive = False
+    sleepModeStartTime = 0
     sleepMonitorThread = None
 
     # ppi('Started with following arguments:')
@@ -1830,6 +1890,7 @@ if __name__ == "__main__":
     WLED_OFF = args['wled_off']
     WLED_SOFF = args['wled_off_at_start']
     SLEEP_TIMEOUT = args['sleep_timeout']
+    SLEEP_OFF_TIMEOUT = args['sleep_off_timeout'] * 60
     
     # Connection Test Mode - Teste alle Verbindungen und beende
     if CONNECTION_TEST == 1:
@@ -1956,6 +2017,10 @@ if __name__ == "__main__":
         SCORE_DARTSCORE_EFFECTS[str(ds)] = parsed_dartscore
         # ppi(parsed_score_area)
     DART_SCORE_BULL_EFFECTS = parse_effects_argument(args['dart_score_BULL_effects'])
+    
+    # Combo Effects
+    COMBO_EFFECTS = parse_combo_effects_argument(args['combo_effects'], parse_effects_argument)
+    combo_tracker = ComboEffectTracker(COMBO_EFFECTS, debug=DEBUG)
     
     # Hauptschleife mit automatischem Neustart
     while True:
