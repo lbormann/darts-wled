@@ -85,12 +85,17 @@ class ComboEffectTracker:
         if self.debug:
             logger.info(f'  [DEBUG] Combo check: player={player_idx} thrown={thrown_fields}')
 
+        # Collect ALL matching combos (same fields can appear multiple times with different targets)
+        merged_effects = []
         for (combo_fields, combo_effects) in self.combo_definitions:
             if thrown_fields == combo_fields:
-                combo_desc = ','.join(combo_fields)
-                if self.debug:
-                    logger.info(f'  [DEBUG] Combo MATCH: {combo_desc}')
-                return (combo_effects, combo_desc)
+                merged_effects.extend(combo_effects)
+
+        if merged_effects:
+            combo_desc = ','.join(thrown_fields)
+            if self.debug:
+                logger.info(f'  [DEBUG] Combo MATCH: {combo_desc} ({len(merged_effects)} effect(s))')
+            return (merged_effects, combo_desc)
 
         if self.debug:
             logger.info(f'  [DEBUG] Combo: no match')
