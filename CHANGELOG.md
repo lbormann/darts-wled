@@ -1,4 +1,4 @@
-## b1.11.0.3
+## b1.11.0.4
 - add Multidevicesupport for more then one endpoint. Documented in Readme.md
 - improved WLED Data Manager with endpoint-specific caching and automatic LED count detection
 - add SLEEP effect which can be activated after a configurable idle time. Activated with -SLE and -SLET arguments
