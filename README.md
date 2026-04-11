@@ -145,6 +145,7 @@ Click on the shortcut to start the application.
 - -DS{1-20} / --dart_score_{1-20}_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below] 
 - -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
 - -CMB / --combo_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
+- -PIDE / --player_idle_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
 - -OFF / --wled_off [OPTIONAL] [Default: 0]
 - -SOFF / --wled_off_at_start [OPTIONAL] [Default: 0]
 - -SLE / --sleep_effect [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
@@ -572,6 +573,34 @@ Combo with preset:
 Combo with multi-device targeting:
 
     -CMB "s1,s20,s5=26|red1|e:0|d:5" "t20,t20,t20=fire|e:1|d:10"
+
+#### *`-PIDE / --player_idle_effects`*
+
+<p>Controls your wled(s) with player-name-specific idle effects. When it's a player's turn, the system first checks if a -PIDE definition exists for that player name. If found, it overrides the default -IDE / -IDE2 ... logic. If not found, the standard IDE fallback applies.
+
+Player names are case-insensitive. Multiple definitions for the same player are merged into a random-choice pool. Supports multi-endpoint targeting.</p>
+
+**Syntax:** `"playername=effect_definition"`
+
+Single player:
+
+    -PIDE "john=solid|green"
+
+Multiple players:
+
+    -PIDE "john=solid|green" "jane=solid|red1"
+
+Random-choice (string without `=` adds to previous player):
+
+    -PIDE "john=solid|green" "solid|blue"
+
+With multi-endpoint targeting:
+
+    -PIDE "john=solid|green|e:0" "john=solid|blue|e:1"
+
+With presets:
+
+    -PIDE "john=ps|10" "jane=ps|11"
 
 
 

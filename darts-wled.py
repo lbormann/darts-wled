@@ -14,6 +14,7 @@ from custom_argument_parser import CustomArgumentParser
 from effect_targeting import EndpointTarget, ParsedWLEDEffect, RANDOM_EFFECT_TOKEN
 from wled_endpoint_router import WLEDEndpointRouter, normalize_wled_ws_url
 from combo_effects import ComboEffectTracker, parse_combo_effects_argument
+from player_idle_effects import PlayerIdleEffects, parse_player_idle_effects_argument
 import time
 import requests
 import socketio
@@ -47,7 +48,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.11.0.4'
+VERSION = '1.11.0.5'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -688,6 +689,7 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
     global waitingForBoardStart
     global idleIndexGlobal
     global playerIndexGlobal
+    global idle_generation
 
     # Prüfe ob Data-Feeder verbunden ist, bevor board-Commands gesendet werden
     if is_win == True and BOARD_STOP_AFTER_WIN == 1 and sio.connected: 
@@ -766,7 +768,13 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
             wait = duration
 
         if(wait > 0):
+            gen_before = idle_generation
             time.sleep(wait)
+            # Skip idle-return if a newer idle was already set (e.g. by darts-pulled/PIDE)
+            if idle_generation != gen_before:
+                if DEBUG:
+                    ppi(f'  [DEBUG] Skipping stale idle-return for [{argument_name}] (gen {gen_before} -> {idle_generation})', None, '')
+                return
             if playerIndex != None:
                 if playerIndex == playerIndexGlobal:
                     idleIndexGlobal = playerIndex
@@ -1323,7 +1331,7 @@ def process_variant_x01(msg):
 
     elif msg['event'] == 'darts-pulled':
                 combo_tracker.clear(msg.get('playerIndex'))
-                check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
+                check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')), player_name=msg.get('player'))
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
         combo_tracker.clear(msg.get('playerIndex'))
         control_wled(BUSTED_EFFECTS, 'Busted!', playerIndex=msg.get('playerIndex'), argument_name='-B')
@@ -1344,11 +1352,11 @@ def process_variant_x01(msg):
 
     elif msg['event'] == 'match-started':
                 combo_tracker.clear_all()
-                check_player_idle(msg.get('playerIndex'), 'match-started')
+                check_player_idle(msg.get('playerIndex'), 'match-started', player_name=msg.get('player'))
 
     elif msg['event'] == 'game-started':
                 combo_tracker.clear_all()
-                check_player_idle(msg.get('playerIndex'), 'game-started')
+                check_player_idle(msg.get('playerIndex'), 'game-started', player_name=msg.get('player'))
 
 def process_variant_Bermuda(msg):
     if msg['event'] == 'darts-thrown':
@@ -1386,7 +1394,7 @@ def process_variant_Bermuda(msg):
 
     elif msg['event'] == 'darts-pulled':
             combo_tracker.clear(msg.get('playerIndex'))
-            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
+            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')), player_name=msg.get('player'))
 
     elif msg['event'] == 'busted' and BUSTED_EFFECTS is not None:
         combo_tracker.clear(msg.get('playerIndex'))
@@ -1402,11 +1410,11 @@ def process_variant_Bermuda(msg):
 
     elif msg['event'] == 'match-started':
             combo_tracker.clear_all()
-            check_player_idle(msg.get('playerIndex'), 'match-started')
+            check_player_idle(msg.get('playerIndex'), 'match-started', player_name=msg.get('player'))
 
     elif msg['event'] == 'game-started':
             combo_tracker.clear_all()
-            check_player_idle(msg.get('playerIndex'), 'game-started')
+            check_player_idle(msg.get('playerIndex'), 'game-started', player_name=msg.get('player'))
 
 def process_variant_Cricket(msg):
     if msg['event'] == 'darts-thrown':
@@ -1439,7 +1447,7 @@ def process_variant_Cricket(msg):
 
     elif msg['event'] == 'darts-pulled':
             combo_tracker.clear(msg.get('playerIndex'))
-            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
+            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')), player_name=msg.get('player'))
 
     elif msg['event'] == 'game-won':
         combo_tracker.clear(msg.get('playerIndex'))
@@ -1451,15 +1459,15 @@ def process_variant_Cricket(msg):
 
     elif msg['event'] == 'match-started':
             combo_tracker.clear_all()
-            check_player_idle(msg.get('playerIndex'), 'match-started')
+            check_player_idle(msg.get('playerIndex'), 'match-started', player_name=msg.get('player'))
 
     elif msg['event'] == 'game-started':
             combo_tracker.clear_all()
-            check_player_idle(msg.get('playerIndex'), 'game-started')
+            check_player_idle(msg.get('playerIndex'), 'game-started', player_name=msg.get('player'))
 
 def process_variant_ATC(msg):
     if msg['event'] == 'darts-pulled':
-            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')))
+            check_player_idle(msg.get('playerIndex'), 'Darts-pulled next: '+ str(msg.get('player', 'Unknown')), player_name=msg.get('player'))
 
     elif msg['event'] == 'game-won':
         control_wled(GAME_WON_EFFECTS, 'Game-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-G')
@@ -1468,10 +1476,10 @@ def process_variant_ATC(msg):
         control_wled(MATCH_WON_EFFECTS, 'Match-won', is_win=True, playerIndex=msg.get('playerIndex'), argument_name='-M')
 
     elif msg['event'] == 'match-started':
-            check_player_idle(msg.get('playerIndex'), 'match-started')
+            check_player_idle(msg.get('playerIndex'), 'match-started', player_name=msg.get('player'))
 
     elif msg['event'] == 'game-started':
-            check_player_idle(msg.get('playerIndex'), 'game-started')
+            check_player_idle(msg.get('playerIndex'), 'game-started', player_name=msg.get('player'))
 
 def process_dartscore_effect(singledartscore, playerIndex=None):
     if (singledartscore == '25' or singledartscore == '50') and DART_SCORE_BULL_EFFECTS is not None:
@@ -1485,17 +1493,17 @@ def process_board_status(msg, playerIndex):
            control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False, argument_name='-BSE')
         #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
-            check_player_idle(playerIndex, 'Board Started')
+            check_player_idle(playerIndex, 'Board Started', player_name=playerNameGlobal, is_board_event=True)
         elif msg['data']['status'] == 'Manual reset' and IDLE_EFFECT is not None:
-            check_player_idle(playerIndex, 'Manual reset')
+            check_player_idle(playerIndex, 'Manual reset', player_name=playerNameGlobal, is_board_event=True)
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
             control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False, argument_name='-TOE')
         elif msg['data']['status'] == 'Takeout Finished':
-            check_player_idle(playerIndex, 'Takeout Finished')
+            check_player_idle(playerIndex, 'Takeout Finished', player_name=playerNameGlobal, is_board_event=True)
         elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:
             control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False, argument_name='-CE')
         elif msg['data']['status'] == 'Calibration Finished':
-            check_player_idle(playerIndex, 'Calibration Finished')
+            check_player_idle(playerIndex, 'Calibration Finished', player_name=playerNameGlobal, is_board_event=True)
 
 def sleep_monitor():
     global sleepModeActive
@@ -1535,7 +1543,26 @@ def process_wled_off():
     if WLED_OFF is not None and WLED_OFF == 1:
         control_wled('off', 'WLED Off', bss_requested=False, argument_name='-OFF')
 
-def check_player_idle(playerIndex, message):
+def check_player_idle(playerIndex, message, player_name=None, is_board_event=False):
+    global idle_generation
+    global last_idle_set_time
+    
+    # Board events debounce: skip if idle was recently set by a game event
+    if is_board_event and (time.time() - last_idle_set_time) < 2:
+        if DEBUG:
+            ppi(f'  [DEBUG] Skipping board idle ({message}) - idle recently set', None, '')
+        return
+    
+    idle_generation += 1
+    last_idle_set_time = time.time()
+    
+    # Check player-name-based idle effects first (-PIDE)
+    if player_name is not None:
+        pide_effects = player_idle_effects.get_idle_effect(player_name)
+        if pide_effects is not None:
+            control_wled(pide_effects, message, bss_requested=False, argument_name='-PIDE')
+            return
+    
     # Fallback auf '0' wenn playerIndex None ist
     if playerIndex is None:
         playerIndex = '0'
@@ -1590,10 +1617,13 @@ def connect_error(data):
 def message(msg):
     global playerIndexGlobal
     global idleIndexGlobal
+    global playerNameGlobal
     try:
         wake_from_sleep()
         if 'playerIndex' in msg:
             playerIndexGlobal = msg['playerIndex']
+        if 'player' in msg:
+            playerNameGlobal = msg['player']
         # ppi(message)
         if('game' in msg and 'mode' in msg['game']):
             mode = msg['game']['mode']
@@ -1611,6 +1641,7 @@ def message(msg):
             process_lobby(msg)
             playerIndexGlobal = None
             idleIndexGlobal = None
+            playerNameGlobal = None
         elif('event' in msg and msg['event'] == 'Board Status'):
             current_player = msg.get('playerIndex', playerIndexGlobal)
             process_board_status(msg, current_player)
@@ -1618,6 +1649,7 @@ def message(msg):
             process_wled_off()
             playerIndexGlobal = None
             idleIndexGlobal = None
+            playerNameGlobal = None
 
     except Exception as e:
         ppe('DATA-FEEDER Message failed: ', e)
@@ -1791,6 +1823,7 @@ if __name__ == "__main__":
     ap.add_argument("-SLEOFF", "--sleep_off_timeout", type=int, default=0, required=False, help="Minutes in sleep mode before WLED is turned off (default: 0 = never)")
     ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
     ap.add_argument("-CMB", "--combo_effects", default=None, required=False, nargs='*', help="Combo effects based on dart field combinations. Format: 'field1,field2,field3=effect'. Multiple combos and random-choice effects in one argument.")
+    ap.add_argument("-PIDE", "--player_idle_effects", default=None, required=False, nargs='*', help="Player-specific idle effects by player name. Format: 'playername=effect'. Supports multi-endpoint targeting.")
     args = vars(ap.parse_args())
 
     WLED_SETTINGS_ARGS = {
@@ -1821,7 +1854,8 @@ if __name__ == "__main__":
         'busted_effects': args['busted_effects'],
         'player_joined_effects': args['player_joined_effects'],
         'player_left_effects': args['player_left_effects'],
-        'combo_effects': args['combo_effects']
+        'combo_effects': args['combo_effects'],
+        'player_idle_effects': args['player_idle_effects']
     }
     for sS in range(0, 181):
         sval = str(sS)
@@ -1839,6 +1873,9 @@ if __name__ == "__main__":
     global waitingForBoardStart
     global playerIndexGlobal
     global idleIndexGlobal
+    global playerNameGlobal
+    global idle_generation
+    global last_idle_set_time
     global lastDataFeederActivity
     global sleepModeActive
     global sleepModeStartTime
@@ -1850,6 +1887,9 @@ if __name__ == "__main__":
     waitingForBoardStart = False
     playerIndexGlobal = None
     idleIndexGlobal = None
+    playerNameGlobal = None
+    idle_generation = 0
+    last_idle_set_time = 0
     lastDataFeederActivity = time.time()
     sleepModeActive = False
     sleepModeStartTime = 0
@@ -2021,6 +2061,10 @@ if __name__ == "__main__":
     # Combo Effects
     COMBO_EFFECTS = parse_combo_effects_argument(args['combo_effects'], parse_effects_argument)
     combo_tracker = ComboEffectTracker(COMBO_EFFECTS, debug=DEBUG)
+    
+    # Player-specific Idle Effects
+    PLAYER_IDLE_DEFS = parse_player_idle_effects_argument(args['player_idle_effects'], parse_effects_argument)
+    player_idle_effects = PlayerIdleEffects(PLAYER_IDLE_DEFS, debug=DEBUG)
     
     # Hauptschleife mit automatischem Neustart
     while True:

@@ -30,6 +30,7 @@ jobs:
             - add SLEEP effect which can be activated after a configurable idle time. Activated with -SLE and -SLET arguments
             - add SLEOFF argument to configure the duration until WLED is turned off after entering sleep mode
             - removed mirror messages out of log. 
+            - add playername specific IDLE effects with PIDE Argument 
               
         draft: false
         prerelease: ${{ startsWith(github.ref, 'refs/tags/b') }}
