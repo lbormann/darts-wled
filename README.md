@@ -590,9 +590,6 @@ Multiple players:
 
     -PIDE "john=solid|green" "jane=solid|red1"
 
-Random-choice (string without `=` adds to previous player):
-
-    -PIDE "john=solid|green" "solid|blue"
 
 With multi-endpoint targeting:
 
@@ -601,6 +598,22 @@ With multi-endpoint targeting:
 With presets:
 
     -PIDE "john=ps|10" "jane=ps|11"
+
+Player names with spaces (must be a single quoted argument):
+
+    -PIDE "bot level 5=solid|azure4"
+
+**Typical setup — your own idle color + a default for everyone else:**
+
+Use `-PIDE` for your name and `-IDE` as fallback for all other players:
+
+    -PIDE "i3ull3t=solid|red1" -IDE "solid|green"
+
+This way, when it's **your** turn, WLED shows `solid|red1`. When it's **any other player's** turn, WLED falls back to `solid|green` (the `-IDE` default).
+
+To also target multiple endpoints:
+
+    -PIDE "i3ull3t=solid|red1|e:0" "i3ull3t=ps|1|e:1" -IDE "solid|green|e:0" "ps|2|e:1"
 
 
 
