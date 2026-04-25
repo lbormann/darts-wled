@@ -48,7 +48,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.11.0.5'
+VERSION = '1.11.0.6'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -83,6 +83,76 @@ STARTUP_GRACE_PERIOD = 5  # Sekunden: Grace-Period nach Verbindungsaufbau bevor 
 
 # LED-Count pro Endpoint
 led_counts = {}  # {endpoint_url: led_count}
+
+# Message dedupe and board-idle race protection
+MESSAGE_DEDUP_WINDOW = 0.35
+BOARD_IDLE_DELAY = 0.35
+recent_messages = {}
+recent_messages_lock = threading.Lock()
+board_idle_lock = threading.Lock()
+board_idle_sequence = 0
+last_darts_pulled_time = 0
+
+
+def _is_duplicate_message(msg):
+    """
+    Ignore duplicate data-feeder messages arriving within a short window.
+    """
+    now = time.time()
+    try:
+        key = json.dumps(msg, sort_keys=True, separators=(',', ':'))
+    except Exception:
+        key = str(msg)
+
+    with recent_messages_lock:
+        # Keep memory bounded by pruning stale entries.
+        cutoff = now - max(2.0, MESSAGE_DEDUP_WINDOW * 4)
+        stale_keys = [k for k, ts in recent_messages.items() if ts < cutoff]
+        for stale_key in stale_keys:
+            del recent_messages[stale_key]
+
+        last_seen = recent_messages.get(key)
+        recent_messages[key] = now
+        return last_seen is not None and (now - last_seen) < MESSAGE_DEDUP_WINDOW
+
+
+def cancel_pending_board_idle(reason='new game event'):
+    global board_idle_sequence
+    with board_idle_lock:
+        board_idle_sequence += 1
+    if DEBUG:
+        ppi(f'  [DEBUG] Canceled pending board-idle ({reason})', None, '')
+
+
+def schedule_board_idle(playerIndex, message):
+    """
+    Delay board-triggered idle slightly so a near-immediate darts-pulled event
+    can win and set the correct next-player idle/PIDE.
+    """
+    global board_idle_sequence
+    scheduled_at = time.time()
+
+    with board_idle_lock:
+        board_idle_sequence += 1
+        sequence = board_idle_sequence
+
+    def _worker():
+        time.sleep(BOARD_IDLE_DELAY)
+
+        with board_idle_lock:
+            if sequence != board_idle_sequence:
+                return
+
+        # If darts-pulled arrived after scheduling, board-idle is stale.
+        if last_darts_pulled_time >= scheduled_at:
+            if DEBUG:
+                ppi(f'  [DEBUG] Skipping stale delayed board-idle ({message}) - darts-pulled arrived', None, '')
+            return
+
+        current_player_index = playerIndexGlobal if playerIndexGlobal is not None else playerIndex
+        check_player_idle(current_player_index, message, player_name=playerNameGlobal, is_board_event=True)
+
+    threading.Thread(target=_worker, daemon=True).start()
 
 def ppi(message, info_object = None, prefix = '\r\n'):
     logger.info(prefix + str(message))
@@ -1493,17 +1563,17 @@ def process_board_status(msg, playerIndex):
            control_wled(BOARD_STOP_EFFECT, 'Board-stopped', bss_requested=False, argument_name='-BSE')
         #    control_wled('test', 'Board-stopped', bss_requested=False)
         elif msg['data']['status'] == 'Board Started':
-            check_player_idle(playerIndex, 'Board Started', player_name=playerNameGlobal, is_board_event=True)
+            schedule_board_idle(playerIndex, 'Board Started')
         elif msg['data']['status'] == 'Manual reset' and IDLE_EFFECT is not None:
-            check_player_idle(playerIndex, 'Manual reset', player_name=playerNameGlobal, is_board_event=True)
+            schedule_board_idle(playerIndex, 'Manual reset')
         elif msg['data']['status'] == 'Takeout Started' and TAKEOUT_EFFECT is not None:
             control_wled(TAKEOUT_EFFECT, 'Takeout Started', bss_requested=False, argument_name='-TOE')
         elif msg['data']['status'] == 'Takeout Finished':
-            check_player_idle(playerIndex, 'Takeout Finished', player_name=playerNameGlobal, is_board_event=True)
+            schedule_board_idle(playerIndex, 'Takeout Finished')
         elif msg['data']['status'] == 'Calibration Started' and CALIBRATION_EFFECT is not None:
             control_wled(CALIBRATION_EFFECT, 'Calibration Started', bss_requested=False, argument_name='-CE')
         elif msg['data']['status'] == 'Calibration Finished':
-            check_player_idle(playerIndex, 'Calibration Finished', player_name=playerNameGlobal, is_board_event=True)
+            schedule_board_idle(playerIndex, 'Calibration Finished')
 
 def sleep_monitor():
     global sleepModeActive
@@ -1618,8 +1688,19 @@ def message(msg):
     global playerIndexGlobal
     global idleIndexGlobal
     global playerNameGlobal
+    global last_darts_pulled_time
     try:
+        if _is_duplicate_message(msg):
+            if DEBUG:
+                ppi('  [DEBUG] Skipping duplicate data-feeder message', None, '')
+            return
+
         wake_from_sleep()
+
+        if 'event' in msg and msg['event'] == 'darts-pulled':
+            last_darts_pulled_time = time.time()
+            cancel_pending_board_idle(reason='darts-pulled')
+
         if 'playerIndex' in msg:
             playerIndexGlobal = msg['playerIndex']
         if 'player' in msg:
