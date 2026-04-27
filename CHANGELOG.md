@@ -1,7 +1,6 @@
 ## b1.11.0.6
 - Bugfix: build routine to avoid race conditions.
 
-
 ## b1.11.0.5
 - add Multidevicesupport for more then one endpoint. Documented in Readme.md
 - improved WLED Data Manager with endpoint-specific caching and automatic LED count detection
