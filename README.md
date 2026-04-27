@@ -146,6 +146,7 @@ Click on the shortcut to start the application.
 - -DSBULL / --dart_score_BULL_effects [OPTIONAL] [Default: None] [Possible values: See below]
 - -CMB / --combo_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
 - -PIDE / --player_idle_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
+- -DMU / --dart_multiplier_effects [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
 - -OFF / --wled_off [OPTIONAL] [Default: 0]
 - -SOFF / --wled_off_at_start [OPTIONAL] [Default: 0]
 - -SLE / --sleep_effect [OPTIONAL] [MULTIPLE ENTRIES POSSIBLE] [Default: None] [Possible values: See below]
@@ -614,6 +615,58 @@ This way, when it's **your** turn, WLED shows `solid|red1`. When it's **any othe
 To also target multiple endpoints:
 
     -PIDE "i3ull3t=solid|red1|e:0" "i3ull3t=ps|1|e:1" -IDE "solid|green|e:0" "ps|2|e:1"
+
+#### *`-DMU / --dart_multiplier_effects`*
+
+> [!CAUTION]
+> **DMU effects fire WHILE you are still throwing.** Only use them if you are 100% sure that the autodarts cameras **cannot see any light from the WLED strip** — neither directly nor as a reflection on the board lighting. Otherwise the dart detection will switch into the **Takeout** state and the next darts will no longer be recognized!
+
+<p>Controls your wled(s) on every single dart based on its <b>fieldMultiplier</b> (1 = single, 2 = double, 3 = triple) and/or a <b>specific field</b> (e.g. t20, d25). Triggered ONLY on dart1-thrown / dart2-thrown / dart3-thrown events — not on the total score event.
+
+DMU effects are intended as light intermediate feedback during the turn and are <b>always overridden by higher-priority follow-up events</b>: Match-Won (-M), Game-Won / Game-Shot (-G), High-Finish (-HF), Busted (-B), Combo (-CMB), total Score (-S&lt;n&gt;) and Score-Area (-A&lt;n&gt;). DMU runs in parallel to -DS / -DSBULL (single-dart-score effects) and does not interfere with combo tracking (-CMB).
+
+Keys are case-insensitive. Multiple definitions for the same key are merged into a random-choice pool. Supports multi-endpoint targeting (e:).</p>
+
+**Syntax:**
+
+* A string with `=` starts a new definition: `"<key>=effect_definition"`
+* A string without `=` adds a random-choice effect to the previous definition
+* Key format:
+    * `1` / `2` / `3` → generic multiplier (matches any field with that multiplier)
+    * `s1`…`s20`, `s25` → specific single field (s25 = outer bull)
+    * `d1`…`d20`, `d25` → specific double field (d25 = bullseye)
+    * `t1`…`t20` → specific triple field
+* Lookup priority: specific field beats generic multiplier
+
+**Examples:**
+
+Every triple plays preset 5:
+
+    -DMU "3=ps|5"
+
+Different effect per multiplier:
+
+    -DMU "1=solid|white" "2=solid|orange" "3=ps|5"
+
+Specific field only (T20 plays effect 63 in red):
+
+    -DMU "t20=63|red|d:3"
+
+Specific field + generic fallback (T20 → red, all other triples → preset 5):
+
+    -DMU "3=ps|5" "t20=63|red|d:3"
+
+Random-choice effects for T20:
+
+    -DMU "t20=63|red|d:3" "102|blue|d:3" "ps|7"
+
+Multi-device targeting (T20 → red on endpoint 0, blue on endpoint 1):
+
+    -DMU "t20=63|red|e:0|d:3" "t20=102|blue|e:1|d:3"
+
+Bullseye preset:
+
+    -DMU "d25=ps|10"
 
 
 

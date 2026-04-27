@@ -15,6 +15,7 @@ from effect_targeting import EndpointTarget, ParsedWLEDEffect, RANDOM_EFFECT_TOK
 from wled_endpoint_router import WLEDEndpointRouter, normalize_wled_ws_url
 from combo_effects import ComboEffectTracker, parse_combo_effects_argument
 from player_idle_effects import PlayerIdleEffects, parse_player_idle_effects_argument
+from dart_multiplier_effects import DartMultiplierEffects, parse_dart_multiplier_effects_argument
 import time
 import requests
 import socketio
@@ -48,7 +49,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.11.0.6'
+VERSION = '1.11.0.7'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -1395,6 +1396,7 @@ def process_variant_x01(msg):
 
     elif msg['event'] == 'dart1-thrown' or msg['event'] == 'dart2-thrown' or msg['event'] == 'dart3-thrown':
         combo_tracker.track_throw(msg)
+        process_dart_multiplier_effect(msg)
         valDart = str(msg['game']['dartValue'])
         if valDart != '0':
             process_dartscore_effect(valDart, playerIndex=msg.get('playerIndex'))
@@ -1556,6 +1558,26 @@ def process_dartscore_effect(singledartscore, playerIndex=None):
         control_wled(DART_SCORE_BULL_EFFECTS, 'Darts-thrown: ' + singledartscore, playerIndex=playerIndex, argument_name='-DSBULL')    
     elif singledartscore in SCORE_DARTSCORE_EFFECTS and SCORE_DARTSCORE_EFFECTS[singledartscore] is not None:
         control_wled(SCORE_DARTSCORE_EFFECTS[singledartscore], 'Darts-thrown: ' + singledartscore, playerIndex=playerIndex, argument_name=f'-DS{singledartscore}')
+
+def process_dart_multiplier_effect(msg):
+    """Triggers a -DMU effect for a single dart throw if a matching definition exists.
+    Only called from dart1/2/3-thrown handlers."""
+    if not dart_multiplier_effects.is_active:
+        return
+    try:
+        field_name = msg['game'].get('fieldName')
+        field_multiplier = msg['game'].get('fieldMultiplier')
+    except (KeyError, TypeError, AttributeError):
+        return
+    result = dart_multiplier_effects.get_effect(field_name, field_multiplier)
+    if result is None:
+        return
+    (effects, match_key) = result
+    desc = f'Dart-multiplier [{match_key}] field={field_name}'
+    # bss_requested=False -> non-blocking: do NOT board-stop and do NOT sleep/idle-return.
+    # This is crucial so that any follow-up event (darts-thrown/-S, busted/-B, game-won/-G,
+    # match-won/-M, high-finish/-HF, combo/-CMB) can immediately override the DMU effect.
+    control_wled(effects, desc, bss_requested=False, playerIndex=msg.get('playerIndex'), argument_name='-DMU')
 
 def process_board_status(msg, playerIndex):
     if msg['event'] == 'Board Status':
@@ -1905,6 +1927,7 @@ if __name__ == "__main__":
     ap.add_argument("-SOFF", "--wled_off_at_start", type=int, choices=range(0, 2), default=False, required=False, help="Turns WLED off when extension is started")
     ap.add_argument("-CMB", "--combo_effects", default=None, required=False, nargs='*', help="Combo effects based on dart field combinations. Format: 'field1,field2,field3=effect'. Multiple combos and random-choice effects in one argument.")
     ap.add_argument("-PIDE", "--player_idle_effects", default=None, required=False, nargs='*', help="Player-specific idle effects by player name. Format: 'playername=effect'. Supports multi-endpoint targeting.")
+    ap.add_argument("-DMU", "--dart_multiplier_effects", default=None, required=False, nargs='*', help="Single-dart multiplier effects. Format: '<key>=effect' where key is 1/2/3 (any field with that multiplier) or s<n>/d<n>/t<n> (specific field). Triggered on dart1/2/3-thrown only.")
     args = vars(ap.parse_args())
 
     WLED_SETTINGS_ARGS = {
@@ -1936,7 +1959,8 @@ if __name__ == "__main__":
         'player_joined_effects': args['player_joined_effects'],
         'player_left_effects': args['player_left_effects'],
         'combo_effects': args['combo_effects'],
-        'player_idle_effects': args['player_idle_effects']
+        'player_idle_effects': args['player_idle_effects'],
+        'dart_multiplier_effects': args['dart_multiplier_effects']
     }
     for sS in range(0, 181):
         sval = str(sS)
@@ -2146,6 +2170,10 @@ if __name__ == "__main__":
     # Player-specific Idle Effects
     PLAYER_IDLE_DEFS = parse_player_idle_effects_argument(args['player_idle_effects'], parse_effects_argument)
     player_idle_effects = PlayerIdleEffects(PLAYER_IDLE_DEFS, debug=DEBUG)
+
+    # Dart Multiplier Effects (single dart, triggered on dart1/2/3-thrown)
+    DART_MULTIPLIER_DEFS = parse_dart_multiplier_effects_argument(args['dart_multiplier_effects'], parse_effects_argument)
+    dart_multiplier_effects = DartMultiplierEffects(DART_MULTIPLIER_DEFS, debug=DEBUG)
     
     # Hauptschleife mit automatischem Neustart
     while True:

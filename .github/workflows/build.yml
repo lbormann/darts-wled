@@ -24,8 +24,8 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
             # Changes in this Release
-            ## b1.11.0.6
-            - Bugfix: build routine to avoid race conditions.
+            ## b1.11.0.7
+              - add `-DMU` argument: per-dart multiplier effects (1/2/3) and field-specific effects (e.g. t20, d25), triggered on dart1/2/3-thrown. Supports multi-endpoint targeting and random-choice. Always overridden by Score/Combo/Busted/Game-Won/Match-Won/High-Finish. Documented in Readme.md.
               
         draft: false
         prerelease: ${{ startsWith(github.ref, 'refs/tags/b') }}
