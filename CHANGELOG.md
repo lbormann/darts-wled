@@ -1,4 +1,4 @@
-## b1.11.0.8
+## b1.11.0.9
 - add `-DMU` argument: per-dart multiplier effects (1/2/3) and field-specific effects (e.g. t20, d25), triggered on dart1/2/3-thrown. Supports multi-endpoint targeting and random-choice. Always overridden by Score/Combo/Busted/Game-Won/Match-Won/High-Finish. Documented in Readme.md.
 
 ## b1.11.0.6

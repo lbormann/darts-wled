@@ -74,8 +74,7 @@ jobs:
               sudo apt-get update
               sudo apt-get install -y qemu-user-static binfmt-support
               docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-              docker run -v $(pwd):/workdir -w /workdir arm64v8/ubuntu:20.04 apt-get update -y && pip install -r requirements.txt --break-system-packages && pyinstaller -F -n darts-wled-arm64 -i resources/darts-wled.svg --add-data "wled_data_manager.py:." darts-wled.py
-              docker run --rm -v /usr/bin/qemu-arm-static:/usr/bin/qemu-arm-static --platform linux/arm64/v8 -v $(pwd):/workdir -w /workdir arm64v8/ubuntu:20.04 bash -c "apt-get update -y && apt-get install -y python3-pip && pip install -r requirements.txt && pyinstaller -F -n darts-wled-arm64 -i resources/darts-wled.svg --add-data \"wled_data_manager.py:.\" darts-wled.py"
+              docker run --rm --platform linux/arm64/v8 -v $(pwd):/workdir -w /workdir arm64v8/python:3.8-slim-bullseye bash -c "apt-get update -y && apt-get install -y --no-install-recommends binutils zlib1g && pip install --no-cache-dir -r requirements.txt && pyinstaller -F -n darts-wled-arm64 -i resources/darts-wled.svg --add-data \"wled_data_manager.py:.\" darts-wled.py"
             OUT_FILE_NAME: darts-wled-arm64
             ASSET_MIME: application/octet-stream
 
