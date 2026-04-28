@@ -49,7 +49,7 @@ http_session.verify = False
 sio = socketio.Client(http_session=http_session, logger=False, engineio_logger=True, reconnection=False)
 
 
-VERSION = '1.11.0.7'
+VERSION = '1.11.0.8'
 
 DEFAULT_EFFECT_BRIGHTNESS = 175
 DEFAULT_EFFECT_IDLE = 'solid|lightgoldenrodyellow'
@@ -761,6 +761,13 @@ def control_wled(effect_list, ptext, bss_requested = True, is_win = False, playe
     global idleIndexGlobal
     global playerIndexGlobal
     global idle_generation
+    global _dmu_revert_gen
+
+    # Bump the DMU revert generation on every WLED control call.
+    # A pending DMU revert thread aborts if this counter changes after it captured it,
+    # which guarantees that any follow-up effect (Score, Combo, Busted, Game/Match-Won,
+    # Idle, ...) is never overwritten by a stale DMU revert.
+    _dmu_revert_gen += 1
 
     # Prüfe ob Data-Feeder verbunden ist, bevor board-Commands gesendet werden
     if is_win == True and BOARD_STOP_AFTER_WIN == 1 and sio.connected: 
@@ -1260,6 +1267,8 @@ def parse_effects_argument(effects_argument, custom_duration_possible = True):
                         custom_duration = int(normalized_param)
                     elif custom_duration_possible and normalized_param.startswith('d:') and normalized_param[2:].isdigit():
                         custom_duration = int(normalized_param[2:])
+                    elif custom_duration_possible and normalized_param.startswith('d') and normalized_param[1:].isdigit():
+                        custom_duration = int(normalized_param[1:])
 
                 parsed_list.append(ParsedWLEDEffect(state=state, duration=custom_duration, target=endpoint_target))
                 continue
@@ -1561,7 +1570,15 @@ def process_dartscore_effect(singledartscore, playerIndex=None):
 
 def process_dart_multiplier_effect(msg):
     """Triggers a -DMU effect for a single dart throw if a matching definition exists.
-    Only called from dart1/2/3-thrown handlers."""
+    Only called from dart1/2/3-thrown handlers.
+
+    The effect is fired non-blocking (bss_requested=False) so that any higher-priority
+    follow-up event (-S/-A/-CMB/-B/-G/-M/-HF/-IDE/-PIDE) can override it instantly.
+    A daemon thread schedules the idle/PIDE revert after the effect's duration. The
+    revert is skipped if any other control_wled call happened in the meantime (tracked
+    via _dmu_revert_gen).
+    """
+    global _dmu_revert_gen
     if not dart_multiplier_effects.is_active:
         return
     try:
@@ -1574,10 +1591,37 @@ def process_dart_multiplier_effect(msg):
         return
     (effects, match_key) = result
     desc = f'Dart-multiplier [{match_key}] field={field_name}'
-    # bss_requested=False -> non-blocking: do NOT board-stop and do NOT sleep/idle-return.
-    # This is crucial so that any follow-up event (darts-thrown/-S, busted/-B, game-won/-G,
-    # match-won/-M, high-finish/-HF, combo/-CMB) can immediately override the DMU effect.
-    control_wled(effects, desc, bss_requested=False, playerIndex=msg.get('playerIndex'), argument_name='-DMU')
+
+    # Determine revert delay: longest duration found on any candidate effect, fallback EFFECT_DURATION
+    revert_delay = 0
+    for eff in effects:
+        if isinstance(eff, ParsedWLEDEffect) and eff.duration:
+            if eff.duration > revert_delay:
+                revert_delay = eff.duration
+    if revert_delay <= 0:
+        revert_delay = EFFECT_DURATION or 0
+
+    player_index = msg.get('playerIndex')
+    player_name = msg.get('player')
+
+    # Fire the DMU effect (this also bumps _dmu_revert_gen inside control_wled)
+    control_wled(effects, desc, bss_requested=False, playerIndex=player_index, argument_name='-DMU')
+
+    # Capture the gen AFTER firing -> any subsequent control_wled call invalidates the revert
+    gen_before = _dmu_revert_gen
+
+    if revert_delay and revert_delay > 0:
+        def _dmu_revert():
+            try:
+                time.sleep(revert_delay)
+                if _dmu_revert_gen != gen_before:
+                    if DEBUG:
+                        ppi(f'  [DEBUG] DMU revert skipped for [{match_key}] - newer effect taken (gen {gen_before} -> {_dmu_revert_gen})', None, '')
+                    return
+                check_player_idle(player_index, f'DMU revert ({match_key})', player_name=player_name)
+            except Exception as e:
+                ppe('DMU revert failed: ', e)
+        threading.Thread(target=_dmu_revert, name='dmu-revert', daemon=True).start()
 
 def process_board_status(msg, playerIndex):
     if msg['event'] == 'Board Status':
@@ -1985,6 +2029,7 @@ if __name__ == "__main__":
     global sleepModeActive
     global sleepModeStartTime
     global sleepMonitorThread
+    global _dmu_revert_gen
     
     WS_WLEDS = list()
     lastMessage = None
@@ -1999,6 +2044,7 @@ if __name__ == "__main__":
     sleepModeActive = False
     sleepModeStartTime = 0
     sleepMonitorThread = None
+    _dmu_revert_gen = 0
 
     # ppi('Started with following arguments:')
     # ppi(json.dumps(args, indent=4))

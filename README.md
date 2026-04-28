@@ -650,19 +650,19 @@ Different effect per multiplier:
 
 Specific field only (T20 plays effect 63 in red):
 
-    -DMU "t20=63|red|d:3"
+    -DMU "t20=63|red|d3"
 
 Specific field + generic fallback (T20 → red, all other triples → preset 5):
 
-    -DMU "3=ps|5" "t20=63|red|d:3"
+    -DMU "3=ps|5" "t20=63|red|d3"
 
 Random-choice effects for T20:
 
-    -DMU "t20=63|red|d:3" "102|blue|d:3" "ps|7"
+    -DMU "t20=63|red|d3" "102|blue|d3" "ps|7"
 
 Multi-device targeting (T20 → red on endpoint 0, blue on endpoint 1):
 
-    -DMU "t20=63|red|e:0|d:3" "t20=102|blue|e:1|d:3"
+    -DMU "t20=63|red|e:0|d3" "t20=102|blue|e:1|d3"
 
 Bullseye preset:
 

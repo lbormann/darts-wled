@@ -52,9 +52,35 @@ class DartMultiplierEffects:
         if not self.is_active:
             return None
 
-        # 1. Specific field match
-        if field_name:
-            key = str(field_name).strip().lower()
+        # Build list of candidate keys for specific-field lookup.
+        # Data feeder may send fieldName already prefixed ("s20", "t20", "d25")
+        # OR as a bare number ("25" for outer bull, "50" for bullseye, "20" for s20).
+        # We try the raw value first, then a prefixed variant derived from the multiplier,
+        # plus the well-known bull aliases.
+        candidate_keys = []
+        if field_name is not None and str(field_name).strip() != '':
+            raw = str(field_name).strip().lower()
+            candidate_keys.append(raw)
+
+            mult_str = str(field_multiplier).strip() if field_multiplier is not None else ''
+            prefix_map = {'1': 's', '2': 'd', '3': 't'}
+            prefix = prefix_map.get(mult_str)
+
+            # If fieldName is purely numeric, build the prefixed variant (e.g. "25" + mult 1 -> "s25").
+            if raw.isdigit() and prefix is not None:
+                prefixed = f'{prefix}{raw}'
+                if prefixed not in candidate_keys:
+                    candidate_keys.append(prefixed)
+                # Special-case bullseye: dartValue "50" with multiplier 2 maps to d25.
+                if raw == '50':
+                    if 'd25' not in candidate_keys:
+                        candidate_keys.append('d25')
+                if raw == '25' and prefix == 's':
+                    # outer bull: also accept just "s25" (already handled above)
+                    pass
+
+        # 1. Specific field match (try all candidate spellings)
+        for key in candidate_keys:
             effects = self.definitions.get(key)
             if effects:
                 if self.debug:
@@ -71,7 +97,7 @@ class DartMultiplierEffects:
                 return (effects, f'x{key}')
 
         if self.debug:
-            logger.info(f'  [DEBUG] DMU: no match for field="{field_name}" multiplier="{field_multiplier}"')
+            logger.info(f'  [DEBUG] DMU: no match for field="{field_name}" multiplier="{field_multiplier}" (tried keys: {candidate_keys})')
         return None
 
 
@@ -108,6 +134,18 @@ def parse_dart_multiplier_effects_argument(dmu_args, parse_effects_fn):
     """
     if dmu_args is None:
         return None
+
+    # Robustness: when the user calls `-DMU=key1=eff1 key2=eff2` (single argparse token
+    # with embedded spaces) we must split on whitespace as well. DMU effect tokens
+    # never contain whitespace, so this is safe.
+    flat_args = []
+    for raw in dmu_args:
+        if raw is None:
+            continue
+        for piece in str(raw).split():
+            if piece:
+                flat_args.append(piece)
+    dmu_args = flat_args
 
     valid_multipliers = {'1', '2', '3'}
     valid_field_prefixes = ('s', 'd', 't')
