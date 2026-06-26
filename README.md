@@ -13,7 +13,7 @@ Development is **actively continuing** at a new location — all future updates,
 
 You can find the latest version of the project here:
 
-### 👉 **[Darts-Caller](https://github.com/Peschi90/darts-wled)**
+### 👉 **[Darts-WLED](https://github.com/Peschi90/darts-wled)**
 ---
 
 ## 🔄 What This Means for You
