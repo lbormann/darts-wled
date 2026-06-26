@@ -1,3 +1,37 @@
+# 📦 Repository Moved
+
+> **Development of this project has moved to a new repository.**
+
+---
+
+## 📢 Important Notice
+
+This repository is **no longer maintained here**.  
+Development is **actively continuing** at a new location — all future updates, releases, and improvements will be published there.
+
+## 🚀 New Repository
+
+You can find the latest version of the project here:
+
+### 👉 **[Darts-Caller](https://github.com/Peschi90/darts-wled)**
+---
+
+## 🔄 What This Means for You
+
+- ⭐ **Star and watch** the new repository to stay up to date
+- 🐛 **Report issues** at the new location
+- 📖 This repository remains available for reference only
+
+---
+
+## 🙏 Thank You
+
+Thanks to everyone who contributed to and supported this project here.  
+See you at the [new repository](https://github.com/Peschi90/darts-wled)! 🎉
+
+
+<br><br><br>
+
 # DARTS-WLED
 [![Downloads](https://img.shields.io/github/downloads/lbormann/darts-wled/total.svg)](https://github.com/lbormann/darts-wled/releases/latest)
 
